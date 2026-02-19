@@ -54,4 +54,3 @@ git branch -d feature/my-task
 git push origin develop 
 https://github.com/LexTheBright/MaRiTs.git 
 git@github.com:LexTheBright/MaRiTs.git 
-ghp_LSwipSrkNvferEK0yJCcqX1ldzWwcB45jxJ
