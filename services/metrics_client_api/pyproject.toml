@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metrics-client"
+version = "0.1.0"
+description = "Minimal client for metrics server"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Lex Huan", email = "BrightComes@mail.ru" }
+]
+
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+]
+
+#[project.urls]
+#Homepage = "https://example.com"
