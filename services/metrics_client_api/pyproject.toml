@@ -17,7 +17,11 @@ authors = [
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.30.0",
+  "pandas",
+  "numpy",
+  "pydantic_settings"
 ]
 
-#[project.urls]
-#Homepage = "https://example.com"
+# Указываем setuptools, что код лежит в папке src
+[tool.setuptools.packages.find]
+where = ["src"]

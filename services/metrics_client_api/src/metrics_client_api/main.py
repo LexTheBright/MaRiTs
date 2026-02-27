@@ -2,7 +2,8 @@ from typing import Dict, List, Tuple
 
 from fastapi import FastAPI, HTTPException
 
-from src.metrics_client import Client, ClientError
+#from src.metrics_client import Client, ClientError
+from metrics_client import Client, ClientError
 from .models import PutMetricRequest, MetricPoint, GetMetricResponse
 
 app = FastAPI(title="Metrics Client API")

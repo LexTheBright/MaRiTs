@@ -1,0 +1,81 @@
+services:
+  # 1. База данных (InfluxDB)
+  # influxdb:
+  #   image: influxdb:2.7-alpine
+  #   container_name: marits-influxdb
+  #   volumes:
+  #     - ./infra/influxdb/data:/var/lib/influxdb2
+  #     - ./infra/influxdb/influxdb.conf:/etc/influxdb2/influxdb.conf
+  #   environment:
+  #     - DOCKER_INFLUXDB_INIT_MODE=setup
+  #     - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUX_USER}
+  #     - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS}
+  #   networks:
+  #     - metrics-net
+  #   healthcheck:
+  #     test: ["CMD", "influx", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # # 2. Сервер, пишущий в Influx
+  # metrics_server:
+  #   build:
+  #     context: ./services/metrics_server
+  #   container_name: marits-metrics-server
+  #   depends_on:
+  #     influxdb:
+  #       condition: service_healthy
+  #   environment:
+  #     - INFLUXDB_URL=http://influxdb:8086
+  #   networks:
+  #     - metrics-net
+
+  # 3. FastAPI-обёртка (основной сервис)
+  metrics_client_api:
+    build:
+      context: ./services/metrics_client_api
+    container_name: marits-metrics-api
+    ports:
+      - "8000:8000"
+    # depends_on:
+    #   - metrics_server
+    networks:
+      - metrics-net
+
+  # 4. Агент мониторинга (Читает ОС)
+  # cpu_monitor:
+  #   build:
+  #     context: ./services/cpu_monitor
+  #   container_name: marits-cpu-monitor
+  #   pid: "host" # Важно для чтения метрик процессора хоста
+  #   depends_on:
+  #     - metrics_client_api
+  #   networks:
+  #     - metrics-net
+
+  # # 5. Marimo Тетрадка
+  # marimo_dashboard:
+  #   build:
+  #     context: ./services/marimo_dashboard
+  #   container_name: marits-marimo
+  #   volumes:
+  #     - ./services/marimo_dashboard/notebooks:/app/notebooks
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - metrics-net
+
+  # # 6. JS-Фронтенд
+  # web_dashboard:
+  #   build:
+  #     context: ./services/web_dashboard
+  #   container_name: marits-web-ui
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - metrics-net
+
+networks:
+  metrics-net:
+    driver: bridge
