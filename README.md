@@ -15,7 +15,7 @@
 
 ## Технологии
 
-- **Python 3.11**
+- **Python 3.12**
 - **FastAPI**
 - **InfluxDB**
 - **Docker / Docker Compose**

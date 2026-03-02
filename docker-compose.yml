@@ -1,3 +1,4 @@
+version: "3.9"
 services:
   # 1. База данных (InfluxDB)
   # influxdb:
@@ -18,28 +19,35 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-  # # 2. Сервер, пишущий в Influx
-  # metrics_server:
-  #   build:
-  #     context: ./services/metrics_server
-  #   container_name: marits-metrics-server
-  #   depends_on:
-  #     influxdb:
-  #       condition: service_healthy
-  #   environment:
-  #     - INFLUXDB_URL=http://influxdb:8086
-  #   networks:
-  #     - metrics-net
+  # 2. Сервер, пишущий в Influx
+  metrics_server:
+    restart: unless-stopped
+    build:
+      context: ./services/metrics_server
+    container_name: marits-metrics-server
+    # depends_on:
+    #   influxdb:
+    #     condition: service_healthy
+    ports:
+      - "8888:8888"    
+    # environment:
+    #   - INFLUXDB_URL=http://influxdb:8086
+    networks:
+      - metrics-net
 
   # 3. FastAPI-обёртка (основной сервис)
   metrics_client_api:
+    restart: unless-stopped
     build:
       context: ./services/metrics_client_api
     container_name: marits-metrics-api
+    environment:
+      METRICS_SERVER_HOST: metrics_server
+      METRICS_SERVER_PORT: "8888"
     ports:
       - "8000:8000"
-    # depends_on:
-    #   - metrics_server
+    depends_on:
+      - metrics_server
     networks:
       - metrics-net
 

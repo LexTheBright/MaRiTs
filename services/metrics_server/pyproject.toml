@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metrics-server"
+version = "0.1.0"
+description = "Async metrics TCP server"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Lex Huan", email = "BrightComes@mail.ru" }
+]
+
+dependencies = []
+
+# Указываем setuptools, что код лежит в папке .
+[tool.setuptools.packages.find]
+where = ["."]

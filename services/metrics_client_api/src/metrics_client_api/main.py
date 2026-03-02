@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Tuple
 
 from fastapi import FastAPI, HTTPException
@@ -10,8 +11,8 @@ app = FastAPI(title="Metrics Client API")
 
 
 #  Перенести в env да
-METRICS_SERVER_HOST = "metrics_server"  # имя сервиса в docker-compose
-METRICS_SERVER_PORT = 5000
+METRICS_SERVER_HOST = os.getenv("METRICS_SERVER_HOST", "metrics_server")
+METRICS_SERVER_PORT = int(os.getenv("METRICS_SERVER_PORT", "8888"))
 
 client = Client(host=METRICS_SERVER_HOST, port=METRICS_SERVER_PORT, timeout=5)
 

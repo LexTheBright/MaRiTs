@@ -83,4 +83,4 @@ def run_server(host: "str", port: "int") -> None:
 
 
 if __name__ == "__main__":
-    run_server("127.0.0.1", 8888)
+    run_server("0.0.0.0", 8888)

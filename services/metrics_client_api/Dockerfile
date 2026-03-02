@@ -17,7 +17,7 @@ COPY src ./src
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
     python -m build && \
     # Устанавливаем во временную папку /install
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl
+    pip install --no-cache-dir --prefix=/install ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.12-alpine
@@ -43,7 +43,7 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Создаем volume для логов или временных данных (если нужно)
-VOLUME ["/tmp"]
+#VOLUME ["/tmp"]
 
 # FastAPI порт
 EXPOSE 8000
