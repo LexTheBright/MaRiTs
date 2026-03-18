@@ -1,23 +1,30 @@
 version: "3.9"
 services:
   # 1. База данных (InfluxDB)
-  # influxdb:
-  #   image: influxdb:2.7-alpine
-  #   container_name: marits-influxdb
-  #   volumes:
-  #     - ./infra/influxdb/data:/var/lib/influxdb2
-  #     - ./infra/influxdb/influxdb.conf:/etc/influxdb2/influxdb.conf
-  #   environment:
-  #     - DOCKER_INFLUXDB_INIT_MODE=setup
-  #     - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUX_USER}
-  #     - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS}
-  #   networks:
-  #     - metrics-net
-  #   healthcheck:
-  #     test: ["CMD", "influx", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: marits-influxdb
+    restart: unless-stopped
+    volumes:
+      - ./infra/influxdb/data:/var/lib/influxdb2
+    environment: #Переменные DOCKER_INFLUXDB_INIT_* работают только при первом запуске
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUX_USER}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASS}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUX_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUX_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUX_TOKEN}
+    ports:
+      - "8086:8086"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --spider -q http://localhost:8086/health"]
+      # или через curl, если он есть в образе:
+      # test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - metrics-net
 
   # 2. Сервер, пишущий в Influx
   metrics_server:
@@ -25,13 +32,19 @@ services:
     build:
       context: ./services/metrics_server
     container_name: marits-metrics-server
-    # depends_on:
-    #   influxdb:
-    #     condition: service_healthy
+    depends_on:
+      influxdb:
+        condition: service_healthy
     ports:
       - "8888:8888"    
-    # environment:
-    #   - INFLUXDB_URL=http://influxdb:8086
+    environment:
+      - INFLUX_USER=${INFLUX_USER}
+      - INFLUX_PASS=${INFLUX_PASS}
+      - INFLUX_ORG=${INFLUX_ORG}
+      - INFLUX_BUCKET=${INFLUX_BUCKET}
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      # - INFLUXDB_URL=influxdb
+      - INFLUXDB_URL=http://influxdb:8086
     networks:
       - metrics-net
 

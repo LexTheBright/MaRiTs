@@ -3,9 +3,11 @@ FROM python:3.12-alpine as builder
 
 # Устанавливаем инструменты сборки. 
 # Pandas и NumPy часто требуют компиляции, если нет готовых wheel-файлов для Alpine.
+# Устанавливаем инструменты сборки + netcat для healthcheck
 RUN apk add --no-cache \
     build-base \
-    libffi-dev
+    libffi-dev \
+    netcat-openbsd
 
 WORKDIR /app
 
@@ -42,12 +44,17 @@ COPY --from=builder /install /usr/local
 # FastAPI порт
 EXPOSE 8888
 
-# Здоровье контейнера (Healthcheck)
-# Позволяет Docker понимать, не завис ли сервис внутри
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8888 || exit 1
+# Healthcheck через TCP-сокет (nc) или Python
+# Вариант 1: через netcat (легковесный)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD echo "ping" | timeout 2 nc -w 1 localhost 8888 >/dev/null 2>&1 || exit 1
 
+# Вариант 2 (альтернатива, если nc не нравится): через Python
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+#   CMD python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',8888)); s.close()" || exit 1
+
+# Запуск сервера (соответствует коду с asyncio.run(main()))
 # Запуск через модуль. 
-# CMD ["python", "-m", "server.main"] 
+CMD ["python", "-m", "server.main"] 
 # ли пакет:
-CMD ["python", "-c", "from server.main import run_server; run_server('0.0.0.0', 8888)"]
+# CMD ["python", "-c", "from server.main import run_server; run_server('0.0.0.0', 8888)"]

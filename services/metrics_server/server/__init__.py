@@ -25,6 +25,6 @@ __author__: str = "Lex Huan"
 __email__: str = "BrightComes@mail.ru"
 __version__: str = "0.1.0"
 
-from .main import run_server, ClientServerProtocol
+from .old_main import ClientServerProtocol
 
-__all__ = ["run_server", "ClientServerProtocol"]
+__all__ = ["ClientServerProtocol"]
