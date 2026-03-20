@@ -98,102 +98,91 @@ class ClientServerProtocol(Protocol):
             result = self._handle_put(chunks)
         else:
             result = "error\nunknown command\n\n"
-
         self.transport.write(result.encode("utf-8"))
 
     def _handle_get(self, chunks: List[str]) -> str:
-        """Обработка команды get <key> или get *"""
         if len(chunks) < 2:
             return "error\nmissing key\n\n"
         
         key = chunks[1]
         result_lines = []
 
+        print(f"DEBUG: Processing GET for key: {key}") # Видно в Docker
+
         try:
             if _influx_query_api and _influx_bucket:
-                # Формируем Flux-запрос
-                if key == "*":
-                    # Все метрики
-                    query = f'''
-                        from(bucket: "{_influx_bucket}")
-                        |> range(start: -30d)
-                        |> filter(fn: (r) => r._measurement == "{METRICS_MEASUREMENT}")
-                        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-                        |> sort(columns: ["_time"])
-                    '''
-                else:
-                    # Конкретный ключ → фильтр по тегу 'metric_key'
-                    query = f'''
-                        from(bucket: "{_influx_bucket}")
-                        |> range(start: -30d)
-                        |> filter(fn: (r) => r._measurement == "{METRICS_MEASUREMENT}")
-                        |> filter(fn: (r) => r.metric_key == "{key}")
-                        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-                        |> sort(columns: ["_time"])
-                    '''
+                # Упрощаем запрос: убираем pivot, чтобы оставить стандартную колонку _value
+                key_filter = "" if key == "*" else f'|> filter(fn: (r) => r.metric_key == "{key}")'
                 
+                query = f'''
+                    from(bucket: "{_influx_bucket}")
+
+                    |> range(start: -30d)
+                    |> filter(fn: (r) => r._measurement == "{METRICS_MEASUREMENT}")
+                    {key_filter}
+                    |> sort(columns: ["_time"])
+                '''
+                
+                print(f"DEBUG: Executing Flux: {query}")
                 tables = _influx_query_api.query(query, org=_influx_org)
                 
+                count = 0
                 for table in tables:
                     for record in table.records:
-                        # Извлекаем значение и время
-                        value = record.get_value()
+                        # Теперь get_value() сработает, так как мы не делали pivot
+                        val = record.get_value()
+                        # Извлекаем тег metric_key напрямую из записи
+                        m_key = record.values.get("metric_key")
+                        # Преобразуем время через ваш парсер
                         ts = _parse_influx_timestamp(str(record.get_time()))
-                        metric_key = record.values.get("metric_key", key)
-                        if value is not None:
-                            result_lines.append(f"{metric_key} {value} {ts}")
-            else:
-                # Fallback: если InfluxDB не подключен — возвращаем пусто
-                pass
+                        
+                        if val is not None and m_key:
+                            result_lines.append(f"{m_key} {val} {ts}")
+                            count += 1
                 
-        except InfluxDBError as e:
-            print(f"❌ InfluxDB query error: {e}")
-            return f"error\ndatabase error\n\n"
+                print(f"DEBUG: Found {count} records in InfluxDB")
+            else:
+                print("DEBUG: InfluxDB query API not initialized")
+                
         except Exception as e:
-            print(f"❌ Query error: {e}")
+            print(f"❌ Query error details: {type(e).__name__}: {e}")
             return f"error\ninternal error\n\n"
 
-        # Формируем ответ в формате протокола
-        result = "ok\n"
-        for line in result_lines:
-            result += f"{line}\n"
-        result += "\n"
-        return result
+        # Формируем ответ
+        response = "ok\n" + "\n".join(result_lines) + "\n\n"
+        return response
 
     def _handle_put(self, chunks: List[str]) -> str:
-        """Обработка команды put <key> <value> <timestamp>"""
         if len(chunks) < 4:
             return "error\nwrong number of arguments\n\n"
         
-        key = chunks[1]
-        if key == "*":
-            return "error\nkey cannot contain *\n\n"
+        key, val_str, ts_str = chunks[1], chunks[2], chunks[3]
+        print(f"DEBUG: PUT received - Key: {key}, Val: {val_str}, TS: {ts_str}")
 
         try:
-            value: float = float(chunks[2])
-            timestamp: int = int(chunks[3])
-        except ValueError:
-            return "error\nvalue error\n\n"
-
-        # Пишем в InfluxDB, если клиент инициализирован
-        if _influx_write_api and _influx_bucket:
-            try:
+            value = float(val_str)
+            timestamp = int(ts_str)
+            
+            if _influx_write_api:
                 point = (
                     Point(METRICS_MEASUREMENT)
-                    .tag("metric_key", key)          # ключ как тег — удобно для фильтрации
-                    .field("value", value)            # значение как поле
-                    .time(timestamp, WritePrecision.S) # время в секундах
+                    .tag("metric_key", key)
+                    .field("value", value)
+                    .time(timestamp, WritePrecision.S)
                 )
                 _influx_write_api.write(bucket=_influx_bucket, record=point)
-            except InfluxDBError as e:
-                print(f"❌ InfluxDB write error: {e}")
-                return "error\ndatabase write error\n\n"
-            except Exception as e:
-                print(f"❌ Write error: {e}")
-                return "error\ninternal error\n\n"
-        
-        # Всегда возвращаем ok, даже если InfluxDB не подключен (fallback-режим)
-        return "ok\n\n"
+                print(f"DEBUG: Successfully wrote {key} to InfluxDB")
+                return "ok\n\n"
+            else:
+                print("DEBUG: InfluxDB Write API is missing (check token/url)")
+                return "error\ndatabase offline\n\n"
+
+        except ValueError:
+            print(f"DEBUG: Bad data format in PUT: {chunks}")
+            return "error\nvalue error\n\n"
+        except Exception as e:
+            print(f"❌ Write error: {e}")
+            return "error\ninternal error\n\n"
 
 
 async def main():

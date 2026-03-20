@@ -43,8 +43,8 @@ services:
       - INFLUX_ORG=${INFLUX_ORG}
       - INFLUX_BUCKET=${INFLUX_BUCKET}
       - INFLUX_TOKEN=${INFLUX_TOKEN}
-      # - INFLUXDB_URL=influxdb
-      - INFLUXDB_URL=http://influxdb:8086
+      # - INFLUX_URL=influxdb
+      - INFLUX_URL=http://influxdb:8086
     networks:
       - metrics-net
 
