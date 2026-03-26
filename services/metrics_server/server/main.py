@@ -111,7 +111,7 @@ class ClientServerProtocol(Protocol):
 
         try:
             if _influx_query_api and _influx_bucket:
-                # Упрощаем запрос: убираем pivot, чтобы оставить стандартную колонку _value
+                
                 key_filter = "" if key == "*" else f'|> filter(fn: (r) => r.metric_key == "{key}")'
                 
                 query = f'''

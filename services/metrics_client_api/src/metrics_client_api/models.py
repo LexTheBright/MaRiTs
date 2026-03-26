@@ -29,3 +29,9 @@ class MetricPoint(BaseModel):
 
 class GetMetricResponse(BaseModel):
     metrics: Dict[str, List[MetricPoint]]
+
+
+class PutMetricBatchItem(BaseModel):
+    metric: str
+    value: float
+    timestamp: int | None = None

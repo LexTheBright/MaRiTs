@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cpu-monitor"
+version = "0.1.0"
+description = "CPU metrics collector with optional compression"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Lex Huan", email = "BrightComes@mail.ru" }
+]
+
+dependencies = [
+  "psutil>=5.0",
+  "requests>=2.0"
+]
+
+# Указываем setuptools, что код лежит в папке src
+[tool.setuptools.packages.find]
+where = ["src"]

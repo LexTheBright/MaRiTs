@@ -1,5 +1,5 @@
 # --- ЭТАП 1: Сборка (Builder) ---
-FROM python:3.12-alpine as builder
+FROM python:3.14-alpine as builder
 
 # Устанавливаем инструменты сборки. 
 # Pandas и NumPy часто требуют компиляции, если нет готовых wheel-файлов для Alpine.
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
     pip install --no-cache-dir --prefix=/install ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 # Метаданные (полезно для администрирования)
 LABEL project.name="Metrics Client API" \

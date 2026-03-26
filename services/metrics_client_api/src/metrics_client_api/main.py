@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 
 #from src.metrics_client import Client, ClientError
 from metrics_client import Client, ClientError
-from .models import PutMetricRequest, MetricPoint, GetMetricResponse
+from .models import PutMetricRequest, MetricPoint, GetMetricResponse, PutMetricBatchItem
 
 app = FastAPI(title="Metrics Client API")
 
@@ -15,19 +15,6 @@ METRICS_SERVER_HOST = os.getenv("METRICS_SERVER_HOST", "metrics_server")
 METRICS_SERVER_PORT = int(os.getenv("METRICS_SERVER_PORT", "8888"))
 
 client = Client(host=METRICS_SERVER_HOST, port=METRICS_SERVER_PORT, timeout=5)
-
-@app.post("/metrics/put", status_code=204)
-async def put_metric(payload: PutMetricRequest):
-    try:
-        client.put(
-            metric=payload.metric,
-            value=payload.value,
-            timestamp=payload.timestamp,
-        )
-    except ClientError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return  # 204 No Content
-
 
 @app.get("/metrics/{metric_name}", response_model=GetMetricResponse)
 async def get_metric(metric_name: str):
@@ -43,3 +30,34 @@ async def get_metric(metric_name: str):
         ]
 
     return GetMetricResponse(metrics=converted)
+
+
+@app.post("/metrics/put", status_code=204)
+async def put_metric(payload: PutMetricRequest):
+    try:
+        client.put(
+            metric=payload.metric,
+            value=payload.value,
+            timestamp=payload.timestamp,
+        )
+    except ClientError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return  # 204 No Content
+
+
+@app.post("/metrics/batch", status_code=204)
+async def put_metrics_batch(items: List[PutMetricBatchItem]):
+    if not items:
+        return
+
+    try:
+        for item in items:
+            client.put(
+                metric=item.metric,
+                value=item.value,
+                timestamp=item.timestamp,
+            )
+    except ClientError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return
