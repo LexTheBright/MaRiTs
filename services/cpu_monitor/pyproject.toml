@@ -22,3 +22,6 @@ dependencies = [
 # Указываем setuptools, что код лежит в папке src
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.scripts]
+cpu-monitor = "cpu_monitor.main:main"

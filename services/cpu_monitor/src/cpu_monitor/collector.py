@@ -6,7 +6,7 @@ import psutil
 MetricPoints = Dict[str, List[Tuple[int, float]]]
 
 
-def collect_cpu_metrics(interval: float = 1.0) -> MetricPoints:
+def collect_cpu_metrics(interval: float = 5.0) -> MetricPoints:
     """
     Собирает пакет CPU-метрик за interval секунд.
 
@@ -26,7 +26,7 @@ def collect_cpu_metrics(interval: float = 1.0) -> MetricPoints:
     usage = psutil.cpu_percent(interval=interval)
     metrics["cpu.usage_percent"] = [(ts, usage)]
 
-    # Частота CPU
+    # CPU
     try:
         freq = psutil.cpu_freq()
         if freq is not None:
@@ -51,4 +51,12 @@ def collect_cpu_metrics(interval: float = 1.0) -> MetricPoints:
     except Exception:
         pass
 
+    # Память 
+    try:
+        memo = psutil.virtual_memory()
+        if memo is not None:
+            metrics["memory.percent_usage"] = [(ts, float(memo.percent))]
+            metrics["memory.used"] = [(ts, float(memo.used))]
+    except Exception:
+        pass
     return metrics
