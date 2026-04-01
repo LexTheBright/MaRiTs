@@ -1,22 +1,25 @@
-echo off
-REM Переходим в каталог скрипта (cpu_monitor)
+@echo off
+setlocal
+
 cd /d "%~dp0"
 
-REM Устанавливаем пакет в профиль пользователя
-python3 -m pip install --user .
+set VENV_DIR=.venv_cpu_monitor
 
-IF %ERRORLEVEL% NEQ 0 (
-    echo Ошибка установки пакета cpu-monitor.
-    pause
-    exit /b 1
+if not exist "%VENV_DIR%" (
+    python -m venv "%VENV_DIR%"
+    if errorlevel 1 (
+        echo Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
 )
 
-REM Настраиваем переменные окружения для текущего запуска
+"%VENV_DIR%\Scripts\python.exe" -m pip install --upgrade pip
+"%VENV_DIR%\Scripts\python.exe" -m pip install .
+
 set METRICS_API_URL=http://localhost:8000
 set CPU_SCRAPE_INTERVAL=5
 set CPU_COMPRESSOR=none
 
-REM Запускаем агент
-cpu-monitor
-
+"%VENV_DIR%\Scripts\python.exe" -m cpu_monitor.main
 pause

@@ -65,27 +65,18 @@ services:
       - metrics-net
 
   # 4. Агент мониторинга (Читает ОС)
-  cpu_monitor:
-    build:
-      context: ./services/cpu_monitor
-    container_name: marits-cpu-monitor
-    depends_on:
-      - metrics_client_api
-    networks:
-      - metrics-net
-    environment:
-      METRICS_API_URL: http://metrics_client_api:8000
-      CPU_SCRAPE_INTERVAL: "5.0"
-      CPU_COMPRESSOR: "none"
   # cpu_monitor:
   #   build:
   #     context: ./services/cpu_monitor
   #   container_name: marits-cpu-monitor
-  #   pid: "host" # Важно для чтения метрик процессора хоста
   #   depends_on:
   #     - metrics_client_api
   #   networks:
   #     - metrics-net
+  #   environment:
+  #     METRICS_API_URL: http://metrics_client_api:8000
+  #     CPU_SCRAPE_INTERVAL: "5.0"
+  #     CPU_COMPRESSOR: "none"
 
   # # 5. Marimo Тетрадка
   # marimo_dashboard:

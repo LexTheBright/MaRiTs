@@ -23,7 +23,12 @@ def collect_cpu_metrics(interval: float = 5.0) -> MetricPoints:
     metrics: MetricPoints = {}
 
     # Общая загрузка CPU
-    usage = psutil.cpu_percent(interval=interval)
+    # usage = psutil.cpu_percent(interval=interval) 
+    usage = psutil.cpu_percent(interval=interval, percpu=True)
+    if type(usage) == list:
+        for i, core in enumerate(usage):
+            metrics[f"cpu.core{i}_usage_percent"] = [(ts, float(core))]
+    usage = psutil.cpu_percent(interval=interval) 
     metrics["cpu.usage_percent"] = [(ts, usage)]
 
     # CPU
