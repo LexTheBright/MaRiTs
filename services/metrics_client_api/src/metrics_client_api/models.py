@@ -35,3 +35,11 @@ class PutMetricBatchItem(BaseModel):
     metric: str
     value: float
     timestamp: int | None = None
+
+class MetricSeriesResponse(BaseModel):
+    metric: str
+    points: List[MetricPoint]
+
+
+class MetricNamesResponse(BaseModel):
+    metrics: List[str]

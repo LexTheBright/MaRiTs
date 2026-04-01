@@ -1,0 +1,39 @@
+# --- ЭТАП 1: Сборка (Builder) ---
+FROM python:3.14-alpine as builder
+
+RUN apk add --no-cache \
+    build-base \
+    libffi-dev \
+    netcat-openbsd
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
+    python -m build && \
+    pip install --no-cache-dir --prefix=/install ./dist/*.whl
+
+# --- ЭТАП 2: Финальный образ ---
+FROM python:3.14-alpine
+
+LABEL project.name="Metrics web dashboard" \
+      project.owner="Lex Huan Ryu" \
+      version="0.1.0"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/usr/local/bin:$PATH" 
+
+WORKDIR /app
+
+COPY --from=builder /install /usr/local
+COPY src/web_dashboard/static /app/static
+
+EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD echo "ping" | timeout 2 nc -w 1 localhost 4000 >/dev/null 2>&1 || exit 1
+
+CMD ["python", "-m", "web_dashboard.server"]

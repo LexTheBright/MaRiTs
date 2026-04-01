@@ -8,7 +8,7 @@ MetricPoints = Dict[str, List[Tuple[int, float]]]
 
 def send_points_batch(points: MetricPoints, api_url: str) -> None:
     """
-    Отправляет пакет метрик в /metrics/batch.
+    Отправляет пакет метрик в /metrics/put_batch.
 
     Формат JSON:
       [
@@ -17,7 +17,7 @@ def send_points_batch(points: MetricPoints, api_url: str) -> None:
         ...
       ]
     """
-    endpoint = api_url.rstrip("/") + "/metrics/batch"
+    endpoint = api_url.rstrip("/") + "/metrics/put_batch"
 
     payload = []
     for metric_name, items in points.items():

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "web-dashboard"
+version = "0.1.0"
+description = "Static dashboard for metrics visualization"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Lex Huan", email = "BrightComes@mail.ru" }
+]
+
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
