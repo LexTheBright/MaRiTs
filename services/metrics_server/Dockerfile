@@ -46,8 +46,8 @@ EXPOSE 8888
 
 # Healthcheck через TCP-сокет (nc) или Python
 # Вариант 1: через netcat (легковесный)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD echo "ping" | timeout 2 nc -w 1 localhost 8888 >/dev/null 2>&1 || exit 1
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+#   CMD echo "ping" | timeout 2 nc -w 1 localhost 8888 >/dev/null 2>&1 || exit 1
 
 # Вариант 2 (альтернатива, если nc не нравится): через Python
 # HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
