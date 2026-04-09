@@ -8,12 +8,12 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml ./
 COPY src ./src
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
     python -m build && \
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl
+    pip install --no-cache-dir --prefix=/install ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -29,11 +29,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY --from=builder /install /usr/local
-COPY src/web_dashboard/static /app/static
+COPY src/web_dashboard/server.py ./server.py       
+COPY src/web_dashboard/static ./static         
 
 EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD echo "ping" | timeout 2 nc -w 1 localhost 4000 >/dev/null 2>&1 || exit 1
 
-CMD ["python", "-m", "web_dashboard.server"]
+CMD ["python", "server.py"]

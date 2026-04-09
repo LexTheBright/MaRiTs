@@ -27,9 +27,17 @@ class MetricPoint(BaseModel):
     value: float
 
 
-class GetMetricResponse(BaseModel):
-    metrics: Dict[str, List[MetricPoint]]
+class MetricStat(BaseModel):
+    mean: float
+    std: float
+    trend: float  # Наклон линии тренда
+    min_val: float
+    max_val: float
+    last_value: float
+    is_increasing: bool
 
+class AnalysisResponse(BaseModel):
+    stats: Dict[str, MetricStat]
 
 class PutMetricBatchItem(BaseModel):
     metric: str

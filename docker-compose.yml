@@ -97,14 +97,21 @@ services:
     build:
       context: ./services/web_dashboard
     container_name: marits-web-ui
+    # МОНТИРУЕМ КОД ДЛЯ ХОТ-РЕЛОАДА
+    #volumes:
+    #  - ./services/metrics_client_api/src:/app/src
     ports:
       - "4000:4000"
     environment:
       METRICS_API_BASE: http://metrics_client_api:8000
       WEB_DASHBOARD_HOST: 0.0.0.0
       WEB_DASHBOARD_PORT: "4000"
+      # Отключаем создание кеша .pyc внутри контейнера
+      #PYTHONDONTWRITEBYTECODE: 1
     depends_on:
       - metrics_client_api
+    # ПЕРЕОПРЕДЕЛЯЕМ КОМАНДУ ДЛЯ РАЗРАБОТКИ
+    #command: ["uvicorn", "metrics_client_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     networks:
       - metrics-net
 

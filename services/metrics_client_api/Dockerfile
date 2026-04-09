@@ -10,14 +10,18 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Улучшаем кеширование: сначала только файлы сборки
-COPY pyproject.toml README.md ./
-COPY src ./src
+COPY pyproject.toml ./
 
-# Собираем проект в wheel-пакет
+# Устанавливаем зависимости во временную папку. 
+# Мы делаем это ДО копирования исходного кода (src), 
+# чтобы этот слой кэшировался и не пересобирался при правках в .py файлах.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-    python -m build && \
-    # Устанавливаем во временную папку /install
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl 
+    pip install --no-cache-dir --prefix=/install pandas numpy fastapi uvicorn  # Список можно расширить
+
+# Теперь копируем исходники и собираем наш локальный пакет
+COPY src ./src
+RUN python -m build && \
+    pip install --no-cache-dir --prefix=/install ./dist/*.whl
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -34,7 +38,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/usr/local/bin:$PATH"
 
 # Для работы Pandas/NumPy в Alpine иногда нужны базовые библиотеки C
-RUN apk add --no-cache libstdc++ curl
+RUN apk add --no-cache libstdc++ curl gcompat
+
+# БЕЗОПАСНОСТЬ: Создаем непривилегированного пользователя
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
@@ -42,8 +49,10 @@ WORKDIR /app
 # Копируем в /usr/local, чтобы всё сразу попало в системные пути Python
 COPY --from=builder /install /usr/local
 
-# Создаем volume для логов или временных данных (если нужно)
-#VOLUME ["/tmp"]
+# Меняем владельца рабочей директории
+RUN chown -R appuser:appgroup /app
+# Переключаемся на пользователя
+USER appuser
 
 # FastAPI порт
 EXPOSE 8000

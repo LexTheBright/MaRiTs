@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Metrics Dashboard</title>
     <script src="/chart.js"></script>
-    <script src="/luxon@3"></script>
-    <script src="/chartjs-adapter-luxon"></script>
+    <script src="/luxon@3.js"></script>
+    <script src="/chartjs-adapter-luxon.js"></script>
     <script src="/metrics-dashboard.js" type="module"></script>
   </head>
   <body style="margin:0;">
-    <metrics-dashboard></metrics-dashboard>
+    <metrics-dashboard 
+        server-url="http://localhost:8000"
+        interval="10" 
+        minutes="10">
+    </metrics-dashboard>
   </body>
 </html>

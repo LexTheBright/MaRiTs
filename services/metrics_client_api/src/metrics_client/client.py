@@ -5,7 +5,7 @@ from time import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Optional, Tuple
+    from typing import Dict, List, Optional, Tuple, Union
 
 
 class ClientError(Exception):
@@ -70,24 +70,48 @@ class Client:
             f"put {metric} {value} {timestamp if timestamp else int(time())}\n"
         )
 
-    def get(self, metric: "str") -> "Dict[str,List[Tuple[int,float]]]":
-        """Метод получения данных"""
+    # def get(self, metric: "str") -> "Dict[str,List[Tuple[int,float]]]":
+    #     """Метод получения данных"""
 
-        result: "Dict[str,List[Tuple[int,float]]]" = {}
+    #     result: "Dict[str,List[Tuple[int,float]]]" = {}
+    
+    #     for line in self.send(f"get {metric}\n").splitlines():
+    #         try:
+    #             _metric, value, timestamp = line.split()
 
-        for line in self.send(f"get {metric}\n").splitlines():
-            try:
-                _metric, value, timestamp = line.split()
+    #             if not _metric in result:
+    #                 result[_metric] = []
 
-                if not _metric in result:
-                    result[_metric] = []
+    #             result[_metric].append((int(timestamp), float(value)))
 
-                result[_metric].append((int(timestamp), float(value)))
+    #         except ValueError as error:
+    #             raise ClientProtocolError(line) from error
 
-            except ValueError as error:
-                raise ClientProtocolError(line) from error
+    #     for item in result.items():
+    #         item[1].sort(key=lambda stamp: stamp[0])
 
-        for item in result.items():
-            item[1].sort(key=lambda stamp: stamp[0])
+    #     return result
+
+    def get(self, metric: "Union[str, list]") -> "Dict[str, List[Tuple[int, float]]]":
+        result = {}
+        
+        # Превращаем в список для единообразия, если пришла строка
+        metrics_to_query = [metric] if isinstance(metric, str) else metric
+        
+        for m in metrics_to_query:
+            raw_response = self.send(f"get {m}\n")
+            for line in raw_response.splitlines():
+                try:
+                    _metric, value, timestamp = line.split()
+                    if _metric not in result:
+                        result[_metric] = []
+                    result[_metric].append((int(timestamp), float(value)))
+                except ValueError as error:
+                    # Если одна строка битая, не роняем всё, а логируем
+                    continue 
+
+        # Сортировка
+        for metric_name in result:
+            result[metric_name].sort(key=lambda x: x[0])
 
         return result
