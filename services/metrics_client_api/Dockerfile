@@ -1,7 +1,7 @@
 # --- ЭТАП 1: Сборка (Builder) ---
 FROM python:3.14-alpine as builder
 
-# Устанавливаем инструменты сборки. 
+# Устанавливаем инструменты сборки. build-base и libffi-dev могут понадобиться из-за Alpine - часто приходится компилировать из исходников, а не whl
 # Pandas и NumPy часто требуют компиляции, если нет готовых wheel-файлов для Alpine.
 RUN apk add --no-cache \
     build-base \
@@ -16,12 +16,12 @@ COPY pyproject.toml ./
 # Мы делаем это ДО копирования исходного кода (src), 
 # чтобы этот слой кэшировался и не пересобирался при правках в .py файлах.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-    pip install --no-cache-dir --prefix=/install pandas numpy fastapi uvicorn  # Список можно расширить
+pip install --no-cache-dir --prefix=/install pandas numpy fastapi uvicorn 
 
 # Теперь копируем исходники и собираем наш локальный пакет
 COPY src ./src
 RUN python -m build && \
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl
+pip install --no-cache-dir --prefix=/install ./dist/*.whl
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -34,7 +34,7 @@ LABEL project.name="Metrics Client API" \
 # Настройки Python (не генерим pyc и выводим сразу в консоль)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    # Добавляем путь к установленным пакетам в PATH
+    # Добавляем путь к установленным пакетам в PATH (обычно в уже есть, но профилактика не помешает)
     PATH="/usr/local/bin:$PATH"
 
 # Для работы Pandas/NumPy в Alpine иногда нужны базовые библиотеки C

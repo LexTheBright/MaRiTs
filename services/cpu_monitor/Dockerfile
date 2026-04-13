@@ -1,8 +1,6 @@
 # --- ЭТАП 1: Сборка (Builder) ---
 FROM python:3.14-alpine as builder
 
-# Устанавливаем инструменты сборки. 
-# Pandas и NumPy часто требуют компиляции, если нет готовых wheel-файлов для Alpine.
 # Устанавливаем инструменты сборки + netcat для healthcheck
 RUN apk add --no-cache \
     build-base \
@@ -12,14 +10,16 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Улучшаем кеширование: сначала только файлы сборки
-COPY pyproject.toml README.md ./
-COPY src ./src
+COPY pyproject.toml ./
 
-# Собираем проект в wheel-пакет
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-    python -m build && \
-    # Устанавливаем во временную папку /install
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl 
+pip install --no-cache-dir --prefix=/install psutil requests
+
+# Устанавливаем во временную папку /install
+# Собираем проект в wheel-пакет
+COPY src ./src
+RUN python -m build && \
+pip install --no-cache-dir --prefix=/install ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -35,11 +35,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     # Добавляем путь к установленным пакетам в PATH
     PATH="/usr/local/bin:$PATH"
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
+
+COPY --from=builder /install /usr/local
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 # Копируем только установленные библиотеки и наш пакет из builder
 # Копируем в /usr/local, чтобы всё сразу попало в системные пути Python
-COPY --from=builder /install /usr/local
 
 # Запуск через модуль. 
 CMD ["python", "-m", "cpu_monitor.main"] 
