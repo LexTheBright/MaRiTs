@@ -115,3 +115,11 @@ class Client:
             result[metric_name].sort(key=lambda x: x[0])
 
         return result
+
+    def get_names(self) -> "List[str]":
+        """Запрашивает список имен метрик через команду list"""
+        raw_response = self.send("list\n") 
+        if not raw_response:
+            return []
+        # Ответ сервера: "ok\nmetric1\nmetric2\n\n",
+        return sorted(raw_response.splitlines())

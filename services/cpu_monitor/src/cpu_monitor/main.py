@@ -24,10 +24,10 @@ def run_agent(
             time.sleep(interval)
 
             raw_points = collect_cpu_metrics(interval=1.0)
-            print("Получили за секунду замера:", raw_points)
+            # print("Получили за секунду замера:", raw_points)
 
             points = compress_points(points=raw_points, compressor_name=compressor_name)
-            print("Получили после сжатия:", points)
+            # print("Получили после сжатия:", points)
 
             send_points_batch(points=points, api_url=api_url)
             print('Sended batch: ', points)

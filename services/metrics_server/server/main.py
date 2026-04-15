@@ -96,6 +96,8 @@ class ClientServerProtocol(Protocol):
             result = self._handle_get(chunks)
         elif cmd == "put":
             result = self._handle_put(chunks)
+        elif cmd == "list": 
+            result = self._handle_list()
         else:
             result = "error\nunknown command\n\n"
         self.transport.write(result.encode("utf-8"))
@@ -107,7 +109,7 @@ class ClientServerProtocol(Protocol):
         key = chunks[1]
         result_lines = []
 
-        print(f"DEBUG: Processing GET for key: {key}") # Видно в Docker
+        # print(f"DEBUG: Processing GET for key: {key}") # Видно в Docker
 
         try:
             if _influx_query_api and _influx_bucket:
@@ -123,7 +125,7 @@ class ClientServerProtocol(Protocol):
                     |> sort(columns: ["_time"])
                 '''
                 
-                print(f"DEBUG: Executing Flux: {query}")
+                # print(f"DEBUG: Executing Flux: {query}")
                 tables = _influx_query_api.query(query, org=_influx_org)
                 
                 count = 0
@@ -140,9 +142,9 @@ class ClientServerProtocol(Protocol):
                             result_lines.append(f"{m_key} {val} {ts}")
                             count += 1
                 
-                print(f"DEBUG: Found {count} records in InfluxDB")
+                # print(f"DEBUG: Found {count} records in InfluxDB")
             else:
-                print("DEBUG: InfluxDB query API not initialized")
+                print("ERROR: InfluxDB query API not initialized")
                 
         except Exception as e:
             print(f"❌ Query error details: {type(e).__name__}: {e}")
@@ -157,7 +159,7 @@ class ClientServerProtocol(Protocol):
             return "error\nwrong number of arguments\n\n"
         
         key, val_str, ts_str = chunks[1], chunks[2], chunks[3]
-        print(f"DEBUG: PUT received - Key: {key}, Val: {val_str}, TS: {ts_str}")
+        # print(f"DEBUG: PUT received - Key: {key}, Val: {val_str}, TS: {ts_str}")
 
         try:
             value = float(val_str)
@@ -171,17 +173,45 @@ class ClientServerProtocol(Protocol):
                     .time(timestamp, WritePrecision.S)
                 )
                 _influx_write_api.write(bucket=_influx_bucket, record=point)
-                print(f"DEBUG: Successfully wrote {key} to InfluxDB")
+                # print(f"DEBUG: Successfully wrote {key} to InfluxDB")
                 return "ok\n\n"
             else:
-                print("DEBUG: InfluxDB Write API is missing (check token/url)")
+                print("ERROR: InfluxDB Write API is missing (check token/url)")
                 return "error\ndatabase offline\n\n"
 
         except ValueError:
-            print(f"DEBUG: Bad data format in PUT: {chunks}")
+            print(f"ERROR: Bad data format in PUT: {chunks}")
             return "error\nvalue error\n\n"
         except Exception as e:
             print(f"❌ Write error: {e}")
+            return "error\ninternal error\n\n"
+
+    def _handle_list(self) -> str:
+        """Возвращает список уникальных имен метрик (metric_key)"""
+        try:
+            if _influx_query_api and _influx_bucket:
+                # Используем schema.tagValues для мгновенного получения имен из индексов
+                query = f'''
+                    import "influxdata/influxdb/schema"
+                    schema.tagValues(
+                        bucket: "{_influx_bucket}",
+                        tag: "metric_key",
+                        start: -30d
+                    )
+                '''
+                tables = _influx_query_api.query(query, org=_influx_org)
+                
+                names = []
+                for table in tables:
+                    for record in table.records:
+                        names.append(record.get_value())
+                
+                response = "ok\n" + "\n".join(sorted(names)) + "\n\n"
+                return response
+            else:
+                return "error\ndatabase offline\n\n"
+        except Exception as e:
+            print(f"❌ List error: {e}")
             return "error\ninternal error\n\n"
 
 

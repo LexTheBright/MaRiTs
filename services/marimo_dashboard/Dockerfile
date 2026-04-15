@@ -1,62 +1,59 @@
 # --- ЭТАП 1: Сборка (Builder) ---
-FROM python:3.12-alpine as builder
+FROM python:3.14-alpine as builder
 
-# Устанавливаем инструменты сборки. 
-# Pandas и NumPy часто требуют компиляции, если нет готовых wheel-файлов для Alpine.
 RUN apk add --no-cache \
     build-base \
-    libffi-dev
+    libffi-dev \
+    netcat-openbsd
 
 WORKDIR /app
 
-# Улучшаем кеширование: сначала только файлы сборки
-COPY pyproject.toml README.md ./
-COPY src ./src
-
-# Собираем проект в wheel-пакет
+# Сначала устанавливаем зависимости (кешируется при изменении кода)
+COPY pyproject.toml ./
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-    python -m build && \
-    # Устанавливаем во временную папку /install
-    pip install --no-cache-dir --prefix=/install ./dist/*.whl 
+    pip install --no-cache-dir --prefix=/install \
+        pandas \
+        numpy \
+        marimo \
+        packaging \ 
+        requests \ 
+        plotly
+
+COPY notebooks/ ./notebooks
+# RUN python -m build && \
+#     pip install --no-cache-dir --prefix=/install ./dist/*.whl
 
 # --- ЭТАП 2: Финальный образ ---
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 # Метаданные (полезно для администрирования)
-LABEL project.name="Metrics Client API" \
+LABEL project.name="Metrics marimo dashboard" \
       project.owner="Lex Huan Ryu" \
       version="0.1.0"
 
 # Настройки Python (не генерим pyc и выводим сразу в консоль)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    # Добавляем путь к установленным пакетам в PATH
     PATH="/usr/local/bin:$PATH"
 
 # Для работы Pandas/NumPy в Alpine иногда нужны базовые библиотеки C
-RUN apk add --no-cache libstdc++ curl
+RUN apk add --no-cache libstdc++ curl gcompat
+
+# БЕЗОПАСНОСТЬ: Создаем непривилегированного пользователя
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
-
-# Копируем только установленные библиотеки и наш пакет из builder
-# Копируем в /usr/local, чтобы всё сразу попало в системные пути Python
 COPY --from=builder /install /usr/local
+# Явно переустанавливаем packaging для гарантии доступности
+RUN pip install --no-cache-dir --upgrade packaging
 
-# Создаем volume для логов или временных данных (если нужно)
-VOLUME ["/tmp"]
+# Меняем владельца рабочей директории
+RUN chown -R appuser:appgroup /app
+# Переключаемся на пользователя
+USER appuser
 
 # FastAPI порт
-EXPOSE 8000
-
-# Здоровье контейнера (Healthcheck)
-# Позволяет Docker понимать, не завис ли сервис внутри
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-CMD curl -f http://localhost:8000/docs || exit 1
-
-RUN pip install marimo pandas
-
-# Копируем тетрадки
-COPY notebooks/ ./notebooks
+EXPOSE 8080
 
 # Запуск marimo в режиме сервера
 CMD ["marimo", "run", "notebooks/dashboard.py", "--host", "0.0.0.0", "--port", "8080"]

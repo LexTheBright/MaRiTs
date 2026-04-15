@@ -24,6 +24,7 @@ app.add_middleware(
         "http://127.0.0.1:4000",
         "http://127.0.0.1:5500",
         "http://localhost:5500",
+        "http://localhost:8080",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,12 +60,23 @@ async def favicon():
 @app.get("/metrics/names", response_model=MetricNamesResponse)
 async def get_metric_names():    
     try:
-        data = client.get("*")
-    except ClientError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        names = client.get_names() 
+        return MetricNamesResponse(metrics=names)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
-    names = sorted(data.keys())
-    return MetricNamesResponse(metrics=names)
+
+@app.get("/metrics/dashboard/config")
+async def get_dashboard_config():
+    return {
+        "default_interval": int(os.getenv("METRICS_DEFAULT_INTERVAL", "20")),
+        "default_minutes": int(os.getenv("METRICS_DEFAULT_MINUTES", "30")),
+        "min_interval": 5,
+        "max_interval": 60,
+        "min_minutes": 1,
+        "max_minutes": 60,
+    }
+
 
 @app.get("/metrics/stream")
 async def metrics_stream(
