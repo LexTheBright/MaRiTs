@@ -30,7 +30,7 @@ def run_agent(
             # print("Получили после сжатия:", points)
 
             send_points_batch(points=points, api_url=api_url)
-            print('Sended batch: ', points)
+            # print('Sended batch: ', points)
 
         except KeyboardInterrupt:
             print("Shutting down agent...")

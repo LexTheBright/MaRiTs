@@ -38,7 +38,7 @@ fi
 "$VENV_DIR/bin/python" -m pip install .
 
 export METRICS_API_URL="http://localhost:8000"
-export CPU_SCRAPE_INTERVAL="5"
+export CPU_SCRAPE_INTERVAL="4"
 export CPU_COMPRESSOR="none"
 
 exec "$VENV_DIR/bin/cpu-monitor"

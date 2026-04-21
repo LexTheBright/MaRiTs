@@ -1,5 +1,6 @@
 """Реализация сервера для приема метрик с сохранением в InfluxDB"""
 
+from time import time 
 import os
 import asyncio
 from asyncio import Protocol, get_event_loop
@@ -28,10 +29,9 @@ def init_influxdb():
     global _influx_client, _influx_write_api, _influx_query_api, _influx_bucket, _influx_org
     
     url = os.getenv("INFLUX_URL", "http://localhost:8086")
-    token = os.getenv("INFLUX_TOKEN")
-    org = os.getenv("INFLUX_ORG", "my-org")
-    bucket = os.getenv("INFLUX_BUCKET", "metrics-bucket")
-    
+    token = os.getenv("INFLUX_TOKEN", "MySuperSecretToken123==")
+    org = os.getenv("INFLUX_ORG", "MaRiTs")
+    bucket = os.getenv("INFLUX_BUCKET", "cpu-metrics")
     if not token:
         print("⚠️  INFLUX_TOKEN not set, running in memory-only mode")
         return
@@ -78,7 +78,7 @@ class ClientServerProtocol(Protocol):
     def connection_made(self, transport):
         self.transport = transport
         peer = transport.get_extra_info("peername")
-        print(f"🔗 New connection from {peer}")
+        # print(f"🔗 New connection from {peer}")
 
     def data_received(self, data):
         """Обработка поступивших данных"""
@@ -106,28 +106,34 @@ class ClientServerProtocol(Protocol):
         if len(chunks) < 2:
             return "error\nmissing key\n\n"
         
-        key = chunks[1]
+        requested_keys = chunks[1:]
         result_lines = []
 
-        # print(f"DEBUG: Processing GET for key: {key}") # Видно в Docker
+        # print(f"DEBUG: Processing GET for keys: {requested_keys}") # Видно в Docker
 
         try:
             if _influx_query_api and _influx_bucket:
                 
-                key_filter = "" if key == "*" else f'|> filter(fn: (r) => r.metric_key == "{key}")'
+                if requested_keys == "*":
+                    key_filter = ""
+                else:
+                    filters = " or ".join([f'r.metric_key == "{k}"' for k in requested_keys])
+                    key_filter = f'|> filter(fn: (r) => {filters})'
                 
                 query = f'''
                     from(bucket: "{_influx_bucket}")
 
-                    |> range(start: -30d)
+                    |> range(start: -1d)
                     |> filter(fn: (r) => r._measurement == "{METRICS_MEASUREMENT}")
                     {key_filter}
                     |> sort(columns: ["_time"])
                 '''
                 
                 # print(f"DEBUG: Executing Flux: {query}")
+                # t = time()
                 tables = _influx_query_api.query(query, org=_influx_org)
-                
+                # print(f"✅ Query took {time() - t:.3f} seconds")
+
                 count = 0
                 for table in tables:
                     for record in table.records:
@@ -145,6 +151,7 @@ class ClientServerProtocol(Protocol):
                 # print(f"DEBUG: Found {count} records in InfluxDB")
             else:
                 print("ERROR: InfluxDB query API not initialized")
+                return "error\ninternal error\n\n"
                 
         except Exception as e:
             print(f"❌ Query error details: {type(e).__name__}: {e}")

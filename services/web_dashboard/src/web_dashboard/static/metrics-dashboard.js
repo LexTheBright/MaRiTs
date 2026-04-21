@@ -10,7 +10,7 @@ class MetricsDashboard extends HTMLElement {
         this.isInitialized = false;
         this.pendingChanges = false; // Флаг наличия неподтвержденных изменений
         
-        this._debounceTime = 3000;
+        this._debounceTime = 2000;
         this._connectDebounceTimer = null;
         this._connectToStreamImpl = this._connectToStreamImpl.bind(this);        
         // Палитра для графиков
@@ -332,6 +332,7 @@ class MetricsDashboard extends HTMLElement {
 
     async connectToStream() {
         clearTimeout(this._connectDebounceTimer);
+        this.setStatus('connecting', 'Подключение...');
         this._connectDebounceTimer = setTimeout(() => {
             this._connectToStreamImpl();
             this.fetchAnalysis();
@@ -345,15 +346,15 @@ class MetricsDashboard extends HTMLElement {
     }
 
     _connectToStreamImpl() {
-        this.setStatus('connecting', 'Обновление метрик...');
+        this.setStatus('connecting', 'Подключение...');
         if (this.eventSource) this.eventSource.close();
         if (this.selectedMetrics.size === 0) return;
 
-        const interval = Math.max(5, parseInt(this.getAttribute('interval') || 20));
-        const minutes = Math.max(5, parseInt(this.getAttribute('minutes') || 30));
+        const interval = Math.max(5, parseInt(this.getAttribute('interval') || 5));
+        const minutes = Math.max(5, parseInt(this.getAttribute('minutes') || 15));
 
         if (interval < 5 || minutes < 5) {
-            this.setStatus('connecting', 'Неправильные параметры. Интервал и минуты должны быть не меньше 5.');
+            this.setStatus('offline', 'Неправильные параметры. Интервал и минуты должны быть не меньше 5.');
             return;
         }
 
@@ -368,13 +369,16 @@ class MetricsDashboard extends HTMLElement {
         // console.log('Устанавливаем соединение:', url);
         
         this.eventSource = new EventSource(url);
-
+        this.setStatus('connecting', 'Обновление метрик...');
         this.eventSource.onmessage = (e) => {
             try {
                 const data = JSON.parse(e.data);
                 if (data.metrics) this.updateCharts(data.metrics);
                 this.setStatus('online', `Обновлено: ${new Date().toLocaleTimeString()} (${interval}с/${minutes}мин)`);
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                this.setStatus('connecting', 'Соединение потеряно. Пытаемся подключиться...');
+                console.error(err); 
+            }
         };
 
         let retryTime = 5000;
@@ -572,6 +576,7 @@ class MetricsDashboard extends HTMLElement {
     }
 
     updateCharts(metricsData) {
+        this.fetchAnalysis();
         const now = Date.now();
         const minutes = this.getAttribute('minutes') || 30;
         const cutoff = now - minutes * 60 * 1000;

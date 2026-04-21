@@ -98,7 +98,7 @@ async def metrics_stream(
     """
     first_run = True 
     target_metrics = metrics.split(",") if metrics else None
-    print(f'Пришел запрос с параметрами {target_metrics=}\n, {interval=}\n, {minutes=}')
+    # print(f'Пришел запрос с параметрами {target_metrics=}\n, {interval=}\n, {minutes=}')
 
     async def event_generator(first_run):
         while True:
@@ -112,8 +112,11 @@ async def metrics_stream(
             try:
                 now = int(time())
                 cutoff = now - minutes * 60
-
+                
+                # t = time()
                 raw_data = await asyncio.to_thread(client.get, target_metrics)
+                # print(f"Time in api - {t-time()}")
+                # print()
 
                 payload = {}
                 for name, points in raw_data.items():
@@ -137,6 +140,7 @@ async def metrics_stream(
                             {"timestamp": int(ts), "value": float(val)} 
                             for ts, val in zip(df_recent['timestamp'], smoothed_values)
                         ]
+                        # print(f"Payload for {name}: {payload[name]}")
 
                 if payload:
                     yield f"data: {json.dumps({'timestamp': now, 'metrics': payload}, separators=(',', ':'))}\n\n"
@@ -146,8 +150,9 @@ async def metrics_stream(
 
             except Exception as exc:
                 message = f"data: {json.dumps({'error': str(exc), "code": 500})}\n\n"
-                print("ERROR: ", message)
+                print("ERROR: ", message, '\nShutting down...')
                 yield message
+                break
 
 
     return StreamingResponse(
@@ -231,8 +236,8 @@ async def get_metric(
     except ClientError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    print(f"[metrics] requested={metric_name}")
-    print(f"[metrics] raw keys={list(data.keys())}")
+    # print(f"[metrics] requested={metric_name}")
+    # print(f"[metrics] raw keys={list(data.keys())}")
 
     points: List[MetricPoint] = []
     if metric_name in data:

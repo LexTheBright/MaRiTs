@@ -1,11 +1,10 @@
 # --- ЭТАП 1: Сборка (Builder) ---
 FROM python:3.14-alpine as builder
 
-# Устанавливаем инструменты сборки + netcat для healthcheck
+# Устанавливаем инструменты сборки 
 RUN apk add --no-cache \
     build-base \
-    libffi-dev \
-    netcat-openbsd
+    libffi-dev 
 
 WORKDIR /app
 
@@ -19,7 +18,7 @@ pip install --no-cache-dir --prefix=/install psutil requests
 # Собираем проект в wheel-пакет
 COPY src ./src
 RUN python -m build && \
-pip install --no-cache-dir --prefix=/install ./dist/*.whl 
+pip install --no-cache-dir --prefix=/install --no-deps ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine

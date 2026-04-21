@@ -92,24 +92,39 @@ class Client:
 
     #     return result
 
-    def get(self, metric: "Union[str, list]") -> "Dict[str, List[Tuple[int, float]]]":
+    def get(self, metric: "Union[str, list]", chunk_size: int = 50) -> "Dict[str, List[Tuple[int, float]]]":
         result = {}
         
         # Превращаем в список для единообразия, если пришла строка
         metrics_to_query = [metric] if isinstance(metric, str) else metric
+        if not metrics_to_query:
+            return {}
         
-        for m in metrics_to_query:
-            raw_response = self.send(f"get {m}\n")
-            for line in raw_response.splitlines():
+        for i in range(0, len(metrics_to_query), chunk_size):
+            chunk = metrics_to_query[i:i + chunk_size]
+
+            query_string = f"get {' '.join(chunk)}\n"
+
+            
+            # t = time()
+            raw_response = self.send(query_string)
+            # print(f"Time In client - {time()-t}")
+
+            lines = raw_response.splitlines()
+            
+            for line in lines[1:]:
+                parts = line.split()
+                if len(parts) != 3:
+                    continue
                 try:
-                    _metric, value, timestamp = line.split()
-                    if _metric not in result:
-                        result[_metric] = []
-                    result[_metric].append((int(timestamp), float(value)))
+                    m_name, value, timestamp = parts
+                    if m_name not in result:
+                        result[m_name] = []
+                    result[m_name].append((int(timestamp), float(value)))
                 except ValueError as error:
                     # Если одна строка битая, не роняем всё, а логируем
                     continue 
-
+        # print(f"Not raw result: {result}")
         # Сортировка
         for metric_name in result:
             result[metric_name].sort(key=lambda x: x[0])

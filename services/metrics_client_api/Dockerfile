@@ -16,12 +16,12 @@ COPY pyproject.toml ./
 # Мы делаем это ДО копирования исходного кода (src), 
 # чтобы этот слой кэшировался и не пересобирался при правках в .py файлах.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-pip install --no-cache-dir --prefix=/install pandas numpy fastapi uvicorn 
+pip install --prefix=/install pandas numpy fastapi uvicorn pydantic_settings
 
 # Теперь копируем исходники и собираем наш локальный пакет
 COPY src ./src
 RUN python -m build && \
-pip install --no-cache-dir --prefix=/install ./dist/*.whl
+pip install --no-cache-dir --prefix=/install --no-deps ./dist/*.whl
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -38,7 +38,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/usr/local/bin:$PATH"
 
 # Для работы Pandas/NumPy в Alpine иногда нужны базовые библиотеки C
-RUN apk add --no-cache libstdc++ curl gcompat
+RUN apk add --no-cache libstdc++ gcompat
 
 # БЕЗОПАСНОСТЬ: Создаем непривилегированного пользователя
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -59,8 +59,8 @@ EXPOSE 8000
 
 # Здоровье контейнера (Healthcheck)
 # Позволяет Docker понимать, не завис ли сервис внутри
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/docs || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:8000/")' || exit 1
 
 # Запуск через модуль. 
 # В структуре src/metrics_client_api/main.py пакет называется metrics_client_api

@@ -55,6 +55,8 @@ services:
     build:
       context: ./services/metrics_client_api
     container_name: marits-metrics-api
+    # volumes:
+    #  - ./services/metrics_client_api/src/:/app/src
     environment:
       METRICS_SERVER_HOST: metrics_server
       METRICS_SERVER_PORT: "8888"
@@ -62,6 +64,7 @@ services:
       - "8000:8000"
     depends_on:
       - metrics_server
+    # command: ["uvicorn", "metrics_client_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     networks:
       - metrics-net
 

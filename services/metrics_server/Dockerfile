@@ -18,8 +18,8 @@ pip install --no-cache-dir --prefix=/install influxdb-client
 COPY server ./server
 # Собираем проект в wheel-пакет
 RUN python -m build && \
+pip install --no-cache-dir --prefix=/install --no-deps ./dist/*.whl 
     # Устанавливаем во временную папку /install
-pip install --no-cache-dir --prefix=/install ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -52,9 +52,8 @@ EXPOSE 8888
 # HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 #   CMD echo "ping" | timeout 2 nc -w 1 localhost 8888 >/dev/null 2>&1 || exit 1
 
-# Вариант 2 (альтернатива, если nc не нравится): через Python
-# HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-#   CMD python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',8888)); s.close()" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:8888/")' || exit 1
 
 # Запуск сервера (соответствует коду с asyncio.run(main()))
 # Запуск через модуль. 

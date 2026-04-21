@@ -3,8 +3,7 @@ FROM python:3.14-alpine as builder
 
 RUN apk add --no-cache \
     build-base \
-    libffi-dev \
-    netcat-openbsd
+    libffi-dev
 
 WORKDIR /app
 
@@ -15,7 +14,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel build
 COPY src ./src
 
 RUN python -m build && \ 
-pip install --no-cache-dir --prefix=/install ./dist/*.whl 
+pip install --no-cache-dir --prefix=/install --no-deps ./dist/*.whl 
 
 # --- ЭТАП 2: Финальный образ ---
 FROM python:3.14-alpine
@@ -43,6 +42,6 @@ USER appuser
 EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD echo "ping" | timeout 2 nc -w 1 localhost 4000 >/dev/null 2>&1 || exit 1
+  CMD python3 -c 'import urllib.request; urllib.request.urlopen("http://localhost:4000/")' || exit 1
 
 CMD ["python", "server.py"]
