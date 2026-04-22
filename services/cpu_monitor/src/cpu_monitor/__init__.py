@@ -26,7 +26,7 @@ __email__: str = "BrightComes@mail.ru"
 __version__: str = "0.1.0"
 
 # src/cpu_monitor/__init__.py
-from .main import run_agent
+# from .main import run_agent
 
-__all__ = ["run_agent"]
+# __all__ = ["run_agent"]
 

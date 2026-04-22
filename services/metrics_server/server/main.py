@@ -161,7 +161,9 @@ class ClientServerProtocol(Protocol):
         response = "ok\n" + "\n".join(result_lines) + "\n\n"
         return response
 
+   
     def _handle_put(self, chunks: List[str]) -> str:
+        """Обработка команды put"""    
         if len(chunks) < 4:
             return "error\nwrong number of arguments\n\n"
         

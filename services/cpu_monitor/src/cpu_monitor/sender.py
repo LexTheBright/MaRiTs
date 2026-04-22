@@ -33,8 +33,8 @@ def send_points_batch(points: MetricPoints, api_url: str) -> None:
     if not payload:
         return
 
-    resp = requests.post(endpoint, json=payload, timeout=20)
+    resp = requests.post(endpoint, json=payload, timeout=5.0)
     if not resp.ok:
         raise RuntimeError(
-            f"ERROR:Ошибка посылки пакета: {resp.status_code} {resp.text}"
+            f"Failed to send metrics batch: {resp.status_code} {resp.text}"
         )

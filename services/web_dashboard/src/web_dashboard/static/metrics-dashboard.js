@@ -1,5 +1,6 @@
 // Все JSdoc и комментарии должны быть переведены на русский язык!
 class MetricsDashboard extends HTMLElement {
+
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -78,22 +79,30 @@ class MetricsDashboard extends HTMLElement {
         };
     }
 
+
+
+
     static get observedAttributes() {
         return ['server-url', 'interval', 'minutes'];
     }
+
 
     attributeChangedCallback(name, oldVal, newVal) {
         if (oldVal !== newVal && this.isInitialized && name !== 'interval' && name !== 'minutes') {
             this.connectToStream();
         }
     }
-
+    
     connectedCallback() {
         this.render();
         this.setupEventListeners();
         this.initDashboard();
         this.isInitialized = true;
     }
+
+
+
+
 
     setupEventListeners() {
         const intervalInput = this.shadowRoot.querySelector('#interval-input');
@@ -238,8 +247,8 @@ class MetricsDashboard extends HTMLElement {
         const intervalInput = this.shadowRoot.querySelector('#interval-input');
         const minutesInput = this.shadowRoot.querySelector('#minutes-input');
         
-        if (intervalInput) intervalInput.value = this.getAttribute('interval') || 20;
-        if (minutesInput) minutesInput.value = this.getAttribute('minutes') || 30;
+        if (intervalInput) intervalInput.value = this.getAttribute('interval') || 10;
+        if (minutesInput) minutesInput.value = this.getAttribute('minutes') || 10;
         
         try {
             const response = await fetch(`${serverUrl}/metrics/names`);
@@ -354,7 +363,7 @@ class MetricsDashboard extends HTMLElement {
         const minutes = Math.max(5, parseInt(this.getAttribute('minutes') || 15));
 
         if (interval < 5 || minutes < 5) {
-            this.setStatus('offline', 'Неправильные параметры. Интервал и минуты должны быть не меньше 5.');
+            this.setStatus('connecting', 'Неправильные параметры. Интервал и минуты должны быть не меньше 5.');
             return;
         }
 
@@ -587,7 +596,7 @@ class MetricsDashboard extends HTMLElement {
 
             chart.data.datasets[0].data = points.map(p => ({ x: p.timestamp * 1000, y: p.value }));
             chart.options.scales.x.min = cutoff;
-            chart.options.scales.x.max = now;
+            chart.options.scales.x.max = now - 50 * 1000;
             chart.update('none');
         }
     }

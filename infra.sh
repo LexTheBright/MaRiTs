@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+
 cleanup() {
     echo "Остановка сервисов..."
     kill $(jobs -p) 2>/dev/null

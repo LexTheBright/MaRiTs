@@ -172,6 +172,7 @@ async def get_metrics_analysis(
     metrics: Optional[str] = Query(None, alias="metrics"),
     minutes: int = Query(default=30, ge=1, le=60)
 ):
+    
     target_metrics = metrics.split(",") if metrics else None
     
     try:

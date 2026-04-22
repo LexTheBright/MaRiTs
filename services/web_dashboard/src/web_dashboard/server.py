@@ -36,6 +36,7 @@ def find_static_dir():
 
 
 def main():
+    
     parser = argparse.ArgumentParser(description="Metrics Web Dashboard")
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind')
     parser.add_argument('--port', type=int, default=4000, help='Port to bind')

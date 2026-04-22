@@ -12,7 +12,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel build && \
-pip install --no-cache-dir --prefix=/install psutil requests
+pip install --no-cache-dir --prefix=/install psutil requests sausage-links
 
 # Устанавливаем во временную папку /install
 # Собираем проект в wheel-пакет
