@@ -69,12 +69,12 @@ async def get_metric_names():
 @app.get("/metrics/dashboard/config")
 async def get_dashboard_config():
     return {
-        "default_interval": int(os.getenv("METRICS_DEFAULT_INTERVAL", "20")),
-        "default_minutes": int(os.getenv("METRICS_DEFAULT_MINUTES", "30")),
+        "default_interval": int(os.getenv("METRICS_DEFAULT_INTERVAL", "5")),
+        "default_minutes": int(os.getenv("METRICS_DEFAULT_MINUTES", "15")),
         "min_interval": 5,
         "max_interval": 60,
-        "min_minutes": 1,
-        "max_minutes": 60,
+        "min_minutes": 5,
+        "max_minutes": 1440,
     }
 
 
@@ -82,8 +82,8 @@ async def get_dashboard_config():
 async def metrics_stream(
     request: Request,
     metrics: Optional[str] = Query(None, alias="metrics"),
-    interval: int = Query(default=20, ge=5, le=60),
-    minutes: int = Query(default=30, ge=1, le=60),
+    interval: int = Query(default=10, ge=5, le=300),
+    minutes: int = Query(default=10, ge=5, le=1440),
 ):
     """
     Метод для получения потока метрик в формате Server-Sent Events
@@ -165,7 +165,7 @@ async def metrics_stream(
             "X-Accel-Buffering": "no", 
         }
     )
-                               
+        
 
 @app.get("/metrics/analysis", response_model=AnalysisResponse)
 async def get_metrics_analysis(
@@ -173,8 +173,11 @@ async def get_metrics_analysis(
     minutes: int = Query(default=30, ge=1, le=60)
 ):
     
-    target_metrics = metrics.split(",") if metrics else None
     
+    t = time()
+    target_metrics = metrics.split(",") if metrics else None
+    print(f'Пришел запрос с параметрами {target_metrics=}\n, {minutes=}')
+
     try:
         raw_data = await asyncio.to_thread(client.get, target_metrics)
     except ClientError as exc:

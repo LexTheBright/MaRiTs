@@ -5,7 +5,6 @@
 
 import marimo as mo
 
-__generated_with = "0.14.0"
 app = mo.App(width="full")
 
 
@@ -32,6 +31,29 @@ def _():
     import marimo as mo
     return mo
 
+@app.cell
+def _():
+    METRIC_CONFIG = {
+        'cpu.core0_usage_percent': {'title': 'CPU Ядро 0', 'unit': '%', 'min': 0, 'max': 100},
+        'cpu.core1_usage_percent': {'title': 'CPU Ядро 1', 'unit': '%', 'min': 0, 'max': 100},
+        'cpu.core2_usage_percent': {'title': 'CPU Ядро 2', 'unit': '%', 'min': 0, 'max': 100},
+        'cpu.core3_usage_percent': {'title': 'CPU Ядро 3', 'unit': '%', 'min': 0, 'max': 100},
+        'cpu.freq.current_mhz': {'title': 'Частота CPU', 'unit': 'МГц', 'min': 0, 'max': 5000},
+        'cpu.usage_percent': {'title': 'Загрузка CPU (общая)', 'unit': '%', 'min': 0, 'max': 100},
+        'memory.percent_usage': {'title': 'Использование памяти', 'unit': '%', 'min': 0, 'max': 100},
+        'memory.used': {'title': 'Использовано памяти', 'unit': 'Б', 'formatBytes': True}
+    }
+    
+    def format_value(value, is_bytes=False):
+        if not is_bytes:
+            return f"{value:.2f}"
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if value < 1024.0:
+                return f"{value:.2f} {unit}"
+            value /= 1024.0
+        return f"{value:.2f} PB"
+
+    return METRIC_CONFIG, format_value
 
 @app.cell
 def _(mo, api_base_url, requests):
@@ -42,11 +64,11 @@ def _(mo, api_base_url, requests):
             return response.json()
         except Exception:
             return {
-                "default_interval": 20,
-                "default_minutes": 30,
+                "default_interval": 5,
+                "default_minutes": 5,
                 "min_interval": 5,
                 "max_interval": 60,
-                "min_minutes": 1,
+                "min_minutes": 5,
                 "max_minutes": 60,
             }
 
@@ -113,7 +135,7 @@ def _(mo, api_base_url, requests):
         full_width=True,
     )
 
-    auto_refresh = mo.ui.refresh(default_interval=f"{config['default_interval']}s")
+    #auto_refresh = mo.ui.refresh(default_interval=f"{config['default_interval']}s")
 
     return (
         config,
@@ -124,12 +146,20 @@ def _(mo, api_base_url, requests):
         other_metrics_selector,
         time_window,
         refresh_interval,
-        auto_refresh,
+        #auto_refresh,
     )
+
+@app.cell
+def _(mo, refresh_interval):
+    auto_refresh = mo.ui.refresh(
+        options=[f"{refresh_interval.value}s"],
+        default_interval=f"{refresh_interval.value}s",
+    )
+    return auto_refresh,
 
 
 @app.cell
-def _(mo, cpu_metrics_selector, other_metrics_selector, time_window, refresh_interval):
+def _(mo, cpu_metrics_selector, other_metrics_selector, time_window, refresh_interval, auto_refresh):
     mo.vstack(
         [
             mo.md(
@@ -137,13 +167,13 @@ def _(mo, cpu_metrics_selector, other_metrics_selector, time_window, refresh_int
 # System Monitor
 
 - CPU метрик в панели: **{len(cpu_metrics_selector.value)}**
-- Остальных метрик в панели: **{len(other_metrics_selector.value)}**
+- Невыбранных метрик в панели: **{len(other_metrics_selector.value)}**
 - Временное окно: **{time_window.value} мин**
 - Интервал обновления: **{refresh_interval.value} сек**
 """
             ),
             mo.hstack([cpu_metrics_selector, other_metrics_selector], gap=1),
-            mo.hstack([time_window, refresh_interval], gap=1),
+            mo.hstack([time_window, refresh_interval, auto_refresh], gap=1),
         ],
         gap=1,
     )
@@ -151,6 +181,8 @@ def _(mo, cpu_metrics_selector, other_metrics_selector, time_window, refresh_int
 
 @app.cell
 def _(api_base_url, requests, pd, cpu_metrics_selector, other_metrics_selector, time_window, refresh_interval, auto_refresh):
+    _tick = auto_refresh.value
+    print(f'{_tick=}')
     def fetch_series(metrics_list, minutes):
         if not metrics_list:
             return {}, {}
@@ -373,40 +405,34 @@ def _(series_data, go, make_subplots):
 
 @app.cell
 def _(stats_data, pd, mo):
+    rows = []
+    for _stat_metric, stats in stats_data.items():
+        rows.append(
+            {
+                "Метрика": _stat_metric,
+                "Среднее": round(stats.get("mean", 0), 2),
+                "Стд. откл.": round(stats.get("std", 0), 2),
+                "Тренд": round(stats.get("trend", 0), 4),
+                "Мин": round(stats.get("min_val", 0), 2),
+                "Макс": round(stats.get("max_val", 0), 2),
+                "Последнее": round(stats.get("last_value", 0), 2),
+                "Тренд": "↑" if stats.get("is_increasing", False) else "↓",
+            }
+        )
+
+    stats_df = pd.DataFrame(rows)
+    
+    # Объединяем заголовок и таблицу в вертикальный стек
+    result = mo.vstack([
+        mo.md("### Статистика"),
+        mo.ui.table(stats_df) # Используем mo.ui.table для красивого отображения
+    ])
+
     if not stats_data:
-        mo.md("### Статистика\n\nВыберите метрики, чтобы увидеть аналитику.")
-    else:
-        rows = []
-        for _stat_metric, stats in stats_data.items():
-            rows.append(
-                {
-                    "Метрика": _stat_metric,
-                    "Среднее": round(stats.get("mean", 0), 2),
-                    "Стд. откл.": round(stats.get("std", 0), 2),
-                    "Тренд": round(stats.get("trend", 0), 4),
-                    "Мин": round(stats.get("min_val", 0), 2),
-                    "Макс": round(stats.get("max_val", 0), 2),
-                    "Последнее": round(stats.get("last_value", 0), 2),
-                    "Растет": "↑" if stats.get("is_increasing", False) else "↓",
-                }
-            )
+        # Важно вернуть объект, чтобы marimo его отрисовал
+        result = mo.md("### Статистика\n\nВыберите метрики, чтобы увидеть аналитику.")
 
-        stats_df = pd.DataFrame(rows)
-        mo.md("### Статистика")
-        stats_df
-
-
-@app.cell
-def _(mo, refresh_interval):
-    mo.md(
-        f"""
-### Управление
-
-- Автообновление включено.
-- Интервал автообновления: **{refresh_interval.value} сек**.
-"""
-    )
-
+    result
 
 if __name__ == "__main__":
     app.run()

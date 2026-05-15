@@ -10,7 +10,7 @@
 | **metrics_client_api** | HTTP‑обёртка (FastAPI) над socket‑клиентом, мост между другими сервисами и сервером метрик | ✅ готов |
 | **cpu_monitor** | Агент, читающий системные показатели с хоста и передающий их клиенту | ✅ готов |
 | **influxdb** | Временное хранилище метрик | ✅ готов |
-| **marimo_dashboard** | Marimo‑тетрадка для визуализации данных с двумя панелями графиков | 🔧 в разработке |
+| **marimo_dashboard** | Marimo‑тетрадка для визуализации данных с двумя панелями графиков | ✅ готов |
 | **web_dashboard** | Веб‑фронтенд с метриками | ✅ готов |
 
 ## Технологии
@@ -391,4 +391,57 @@ sudo docker compose up -d
 
 ```bash
 sudo usermod -aG docker $USER
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CM as CPU Monitor
+    participant CA as Client API
+    participant MS as Metrics Server
+    participant IDB as InfluxDB
+    participant WD as Web Dashboard
+
+    rect rgb(200, 230, 255)
+        note over CM,IDB: Запись метрик (Поток записи)
+        CM->>CA: POST /metrics/put_batch<br/>{name, value, timestamp}
+        activate CA
+        CA->>MS: TCP: put name value timestamp
+        activate MS
+        MS->>IDB: write(bucket, measurement,<br/>fields, tags, timestamp)
+        activate IDB
+        IDB-->>MS: OK
+        deactivate IDB
+        MS-->>CA: ok\n\n
+        deactivate MS
+        CA-->>CM: 204 No content
+        deactivate CA
+    end
+
+    rect rgb(230, 255, 200)
+        note over CA, WD: Чтение аналитики (Поток чтения)
+        WD->>CA: GET /metrics/analysis?metrics=name&minutes=int
+        activate CA
+        CA->>MS: TCP: get <name >...
+        activate MS
+        MS->>IDB: flux query filter
+        activate IDB
+        IDB-->>MS: tables with <key val ts>
+        deactivate IDB
+        MS-->>CA: TCP: ok\n<\nkey val ts>...\n\n>
+        deactivate MS
+        CA-->>WD: JSON {<stat_name: stat_val,>...}
+        deactivate CA
+    end
+
+    rect rgb(255, 230, 200)
+        note over WD,CA: Потоковая передача метрик (SSE Поток)
+        WD->>CA: GET /metrics/stream?interval=int&minutes=int&<metrics=name,>...
+        CA-->>WD: OK 200
+        activate CA
+        loop Каждые <interval>мс
+            CA->>CA: Обработка и<br/>сглаживание
+            CA-->>WD: JSON: {"ts","metrics":{"name":[{"timestamp","value"}]}},
+        end
+    end
 ```

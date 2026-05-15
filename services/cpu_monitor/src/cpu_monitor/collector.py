@@ -37,8 +37,8 @@ def collect_cpu_metrics(interval: float = 5.0) -> MetricPoints:
         if freq is not None:
             metrics["cpu.freq.current_mhz"] = [(ts, float(freq.current))]
             # при желании:
-            # metrics["cpu.freq.min_mhz"] = [(ts, float(freq.min))]
-            # metrics["cpu.freq.max_mhz"] = [(ts, float(freq.max))]
+            metrics["cpu.freq.min_mhz"] = [(ts, float(freq.min))]
+            metrics["cpu.freq.max_mhz"] = [(ts, float(freq.max))]
     except Exception:
         pass
 

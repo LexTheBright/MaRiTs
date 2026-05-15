@@ -205,7 +205,7 @@ class ClientServerProtocol(Protocol):
                     schema.tagValues(
                         bucket: "{_influx_bucket}",
                         tag: "metric_key",
-                        start: -30d
+                        start: -1d
                     )
                 '''
                 tables = _influx_query_api.query(query, org=_influx_org)

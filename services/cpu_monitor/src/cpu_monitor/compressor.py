@@ -11,7 +11,7 @@ MetricPoints = Dict[str, List[Tuple[int, float]]]
 def _sausage_links(
     source: Iterator[Tuple[int, float]],
     deviation: float = 0.1,
-    max_len: float = 0,
+    max_len: float = 10,
     auto_dev_factor: float = 0,
     ema_alpha: float = 0.3,
 ) -> Generator[Tuple[int, float], None, None]:

@@ -215,7 +215,7 @@ def main() -> None:
     ema_alpha = float(os.getenv("COMPRESSOR_EMA_ALPHA", "0.3"))
     # max_silent_interval - интервал в секундах, через который отправляется heartbeat
     # для неизменных метрик (чтобы отличить их от отсутствующих)
-    max_silent_interval = float(os.getenv("COMPRESSOR_MAX_SILENT_INTERVAL", "10.0"))
+    max_silent_interval = float(os.getenv("COMPRESSOR_MAX_SILENT_INTERVAL", "20.0"))
 
     run_agent(
         api_url=api_url,
