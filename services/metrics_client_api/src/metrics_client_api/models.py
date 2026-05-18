@@ -1,8 +1,7 @@
 """
-models
----------------
+Модели данных для API метрик.
 
-Различные модели для приложения.
+Содержит Pydantic модели для запросов и ответов API.
 """
 
 from datetime import datetime
@@ -15,6 +14,7 @@ from pydantic_settings import BaseSettings
 
 
 class PutMetricRequest(BaseModel):
+    """Запрос на отправку одной метрики."""
     metric: str = Field(..., description="Название метрики")
     value: float = Field(..., description="Значение")
     timestamp: int | None = Field(
@@ -23,11 +23,13 @@ class PutMetricRequest(BaseModel):
 
 
 class MetricPoint(BaseModel):
+    """Точка данных метрики."""
     timestamp: int
     value: float
 
 
 class MetricStat(BaseModel):
+    """Статистика по метрике."""
     mean: float
     std: float
     trend: float  # Наклон линии тренда
@@ -37,17 +39,21 @@ class MetricStat(BaseModel):
     is_increasing: bool
 
 class AnalysisResponse(BaseModel):
+    """Ответ с аналитикой по метрикам."""
     stats: Dict[str, MetricStat]
 
 class PutMetricBatchItem(BaseModel):
+    """Элемент пакета метрик для отправки."""
     metric: str
     value: float
     timestamp: int | None = None
 
 class MetricSeriesResponse(BaseModel):
+    """Ответ с временным рядом метрики."""
     metric: str
     points: List[MetricPoint]
 
 
 class MetricNamesResponse(BaseModel):
+    """Ответ со списком имен метрик."""
     metrics: List[str]

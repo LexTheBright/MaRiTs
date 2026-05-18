@@ -1,24 +1,21 @@
 """
+Модуль мониторинга CPU.
+
+Собирает метрики использования CPU, частоты, температуры и памяти,
+сжимает их и отправляет на сервер метрик.
+
 Запуск:
-    uvicorn metrics_client_api.main:app --host 0.0.0.0 --port 8000
+    python -m cpu_monitor.main
 
-Опции:
-    -H, --host HOST        Хост для запуска сервера (по умолчанию: 127.0.0.1)
-    -P, --port PORT        Порт для запуска сервера (по умолчанию: 8080)
-    -L, --log-level LEVEL  Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-                           (по умолчанию: WARNING)
-    -D, --debug            Включение режима отладки (также включает подробное логирование)
-
-Режим отладки:
-    Режим отладки включается либо флагом -D/--debug, либо если интерпретатор запущен
-    без ключей оптимизации (__debug__).
-    При включенном режиме отладки (-D, --debug или __debug__) уровень логирования
-    устанавливается в DEBUG, независимо от указанного в --log-level.
-
-Примеры:
-    python -O -m veche --host 0.0.0.0 --port 8000 --log-level INFO
-    python -O -m veche -H 0.0.0.0 -P 8000 -L DEBUG
-    python -O -m veche --debug
+Опции окружения:
+    METRICS_API_URL - URL сервера метрик (по умолчанию: http://localhost:8000)
+    CPU_COLLECTION_INTERVAL - Интервал сбора метрик в секундах (по умолчанию: 0.5)
+    BATCH_SEND_INTERVAL - Интервал отправки пакетов в секундах (по умолчанию: 3.0)
+    CPU_COMPRESSOR - Тип компрессора: "none" или "sausage_links" (по умолчанию: none)
+    COMPRESSOR_DEVIATION - Отклонение для сжатия (по умолчанию: 1.0)
+    COMPRESSOR_AUTO_DEV_FACTOR - Фактор авто-отклонения (по умолчанию: 0.5)
+    COMPRESSOR_EMA_ALPHA - Коэффициент сглаживания EMA (по умолчанию: 0.3)
+    COMPRESSOR_MAX_SILENT_INTERVAL - Максимальный интервал молчания для heartbeat (по умолчанию: 20.0)
 """
 
 __author__: str = "Lex Huan"

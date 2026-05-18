@@ -25,7 +25,17 @@ METRICS_MEASUREMENT = "custom_metrics"
 
 
 def init_influxdb():
-    """Инициализация подключения к InfluxDB"""
+    """
+    Инициализация подключения к InfluxDB.
+
+    Читает конфигурацию из переменных окружения:
+    - INFLUX_URL: URL сервера InfluxDB
+    - INFLUX_TOKEN: Токен доступа
+    - INFLUX_ORG: Организация
+    - INFLUX_BUCKET: Bucket для записи
+
+    Если токен не установлен, работает в режиме "только память" (без сохранения).
+    """
     global _influx_client, _influx_write_api, _influx_query_api, _influx_bucket, _influx_org
     
     url = os.getenv("INFLUX_URL", "http://localhost:8086")
@@ -73,7 +83,16 @@ def _parse_influx_timestamp(ts: str) -> int:
 
 
 class ClientServerProtocol(Protocol):
-    """Реализация протокола с сохранением в InfluxDB"""
+    """
+    Протокол сервера для приема и обработки метрик.
+
+    Реализует простой текстовый протокол с командами:
+    - put <metric> <value> <timestamp> - сохранить метрику
+    - get <metric1> [metric2 ...] - получить значения метрик
+    - list - получить список всех имен метрик
+
+    Данные сохраняются в InfluxDB (если настроено) или возвращают ошибку.
+    """
 
     def connection_made(self, transport):
         self.transport = transport
@@ -81,7 +100,14 @@ class ClientServerProtocol(Protocol):
         # print(f"🔗 New connection from {peer}")
 
     def data_received(self, data):
-        """Обработка поступивших данных"""
+        """
+        Обработка поступивших данных.
+
+        Парсит команду клиента и вызывает соответствующий обработчик.
+
+        Args:
+            data: Сырые данные от клиента (байты)
+        """
         result: str = "error\nwrong command\n\n"
         command: str = data.decode("utf-8").strip("\r\n")
         chunks: List[str] = command.split(" ")
@@ -103,6 +129,15 @@ class ClientServerProtocol(Protocol):
         self.transport.write(result.encode("utf-8"))
 
     def _handle_get(self, chunks: List[str]) -> str:
+        """
+        Обработка команды get.
+
+        Args:
+            chunks: Разобранная команда (первый элемент - "get", остальные - имена метрик)
+
+        Returns:
+            Ответ сервера в формате "ok\\n<данные>\\n\\n" или "error\\n<описание>\\n\\n"
+        """
         if len(chunks) < 2:
             return "error\nmissing key\n\n"
         
@@ -163,7 +198,15 @@ class ClientServerProtocol(Protocol):
 
    
     def _handle_put(self, chunks: List[str]) -> str:
-        """Обработка команды put"""    
+        """
+        Обработка команды put.
+
+        Args:
+            chunks: Разобранная команда ["put", metric, value, timestamp]
+
+        Returns:
+            Ответ сервера в формате "ok\\n\\n" или "error\\n<описание>\\n\\n"
+        """   
         if len(chunks) < 4:
             return "error\nwrong number of arguments\n\n"
         
@@ -196,7 +239,13 @@ class ClientServerProtocol(Protocol):
             return "error\ninternal error\n\n"
 
     def _handle_list(self) -> str:
-        """Возвращает список уникальных имен метрик (metric_key)"""
+        """
+        Возвращает список уникальных имен метрик (metric_key).
+
+        Returns:
+            Ответ сервера в формате "ok\\n<metric1>\\n<metric2>\\n...\\n\\n"
+            или "error\\ndatabase offline\\n\\n"
+        """
         try:
             if _influx_query_api and _influx_bucket:
                 # Используем schema.tagValues для мгновенного получения имен из индексов
@@ -225,7 +274,12 @@ class ClientServerProtocol(Protocol):
 
 
 async def main():
-    """Точка входа сервера"""
+    """
+    Точка входа сервера.
+
+    Инициализирует подключение к InfluxDB и запускает asyncio-сервер
+    на порту 8888 для обработки запросов клиентов.
+    """
     # Инициализация InfluxDB
     init_influxdb()
     

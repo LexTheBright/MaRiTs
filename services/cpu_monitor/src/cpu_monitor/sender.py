@@ -10,12 +10,15 @@ def send_points_batch(points: MetricPoints, api_url: str) -> None:
     """
     Отправляет пакет метрик в /metrics/put_batch.
 
-    Формат JSON:
-      [
-        {"metric": "cpu.usage_percent", "value": 42.5, "timestamp": 1711450000},
-        {"metric": "cpu.freq.current_mhz", "value": 2300.0, "timestamp": 1711450000},
-        ...
-      ]
+    Преобразует словарь метрик в формат JSON и отправляет POST-запросом
+    на указанный API URL.
+
+    Args:
+        points: Словарь метрик вида {metric_name: [(timestamp, value), ...]}
+        api_url: Базовый URL API сервера метрик
+
+    Raises:
+        RuntimeError: Если отправка не удалась (статус ответа не 2xx)
     """
     endpoint = api_url.rstrip("/") + "/metrics/put_batch"
 
@@ -38,3 +41,4 @@ def send_points_batch(points: MetricPoints, api_url: str) -> None:
         raise RuntimeError(
             f"Failed to send metrics batch: {resp.status_code} {resp.text}"
         )
+

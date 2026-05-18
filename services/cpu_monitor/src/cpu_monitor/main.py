@@ -16,7 +16,13 @@ MetricPoints = Dict[str, List[Tuple[int, float]]]
 class MetricStream:
     """
     Управляет потоком одной метрики: буферизация, сжатие.
+
     Каждая метрика имеет свой собственный компрессор.
+    Используется для потоковой обработки и отправки метрик пакетами.
+
+    Attributes:
+        metric_name: Имя метрики
+        compressor_name: Тип компрессора ("none" или "sausage_links")
     """
 
     def __init__(
@@ -84,6 +90,23 @@ def run_agent(
     ema_alpha: float = 0.3,
     max_silent_interval: float = 10.0,
 ) -> None:
+    """
+    Запускает агент сбора и отправки метрик.
+
+    Агент работает в двух потоках:
+    - collect_loop: собирает метрики через заданные интервалы
+    - send_loop: отправляет сжатые пакеты метрик на сервер
+
+    Args:
+        api_url: URL API сервера метрик
+        collection_interval: Интервал сбора метрик в секундах
+        batch_send_interval: Интервал отправки пакетов в секундах
+        compressor_name: Тип компрессора ("none" или "sausage_links")
+        deviation: Отклонение для алгоритма сжатия
+        auto_dev_factor: Фактор адаптивного отклонения
+        ema_alpha: Коэффициент сглаживания EMA
+        max_silent_interval: Максимальный интервал молчания для heartbeat (секунды)
+    """
     print(
         f"Starting CPU monitor with batch sending and streaming compression: "
         f"api_url={api_url}, collection_interval={collection_interval}s, "
@@ -201,8 +224,19 @@ def run_agent(
 
 
 def main() -> None:
-    """CLI‑обёртка, читающая env‑переменные и запускающая run_agent()."""
+    """
+    CLI-обёртка, читающая env-переменные и запускающая run_agent().
 
+    Читает конфигурацию из переменных окружения:
+        METRICS_API_URL - URL API сервера
+        CPU_COLLECTION_INTERVAL - Интервал сбора метрик
+        BATCH_SEND_INTERVAL - Интервал отправки пакетов
+        CPU_COMPRESSOR - Тип компрессора
+        COMPRESSOR_DEVIATION - Отклонение для сжатия
+        COMPRESSOR_AUTO_DEV_FACTOR - Фактор авто-отклонения
+        COMPRESSOR_EMA_ALPHA - Коэффициент EMA
+        COMPRESSOR_MAX_SILENT_INTERVAL - Интервал heartbeat
+    """
     api_url = os.getenv("METRICS_API_URL", "http://localhost:8000")
     collection_interval = float(os.getenv("CPU_COLLECTION_INTERVAL", "0.5"))
     batch_send_interval = float(os.getenv("BATCH_SEND_INTERVAL", "3.0"))

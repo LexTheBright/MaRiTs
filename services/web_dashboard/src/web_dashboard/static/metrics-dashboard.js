@@ -1,4 +1,19 @@
 // Все JSdoc и комментарии должны быть переведены на русский язык!
+/**
+ * Веб-компонент дашборда для отображения метрик системы в реальном времени.
+ *
+ * @element metrics-dashboard
+ * @attr {string} server-url - URL сервера API метрик
+ * @attr {number} interval - Интервал обновления данных в секундах
+ * @attr {number} minutes - Глубина истории в минутах
+ *
+ * @example
+ * <metrics-dashboard
+ *     server-url="http://localhost:8000"
+ *     interval="5"
+ *     minutes="15">
+ * </metrics-dashboard>
+ */
 class MetricsDashboard extends HTMLElement {
 
     constructor() {

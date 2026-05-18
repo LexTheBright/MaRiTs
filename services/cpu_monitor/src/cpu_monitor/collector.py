@@ -10,20 +10,28 @@ def collect_cpu_metrics(interval: float = 5.0) -> MetricPoints:
     """
     Собирает пакет CPU-метрик за interval секунд.
 
-    Возвращает словарь:
-      {
-        "cpu.usage_percent": [(ts, value)],
-        "cpu.freq.current_mhz": [(ts, value)],
-        "cpu.temp.celsius": [(ts, value)],  # если доступно
-        ...
-      }
+    Собирает метрики загрузки CPU (общей и по ядрам), частоты,
+    температуры (если доступна) и использования памяти.
+
+    Args:
+        interval: Интервал сбора метрик в секундах (по умолчанию 5.0)
+
+    Returns:
+        Словарь метрик вида:
+        {
+            "cpu.usage_percent": [(timestamp, значение), ...],
+            "cpu.core0_usage_percent": [(timestamp, значение), ...],
+            "cpu.freq.current_mhz": [(timestamp, значение), ...],
+            "cpu.temp.celsius": [(timestamp, значение), ...],  # если доступно
+            "memory.percent_usage": [(timestamp, значение), ...],
+            "memory.used": [(timestamp, значение), ...],
+        }
     """
     ts = int(time())
 
     metrics: MetricPoints = {}
 
     # Общая загрузка CPU
-    # usage = psutil.cpu_percent(interval=interval) 
     usage = psutil.cpu_percent(interval=interval, percpu=True)
     if type(usage) == list:
         for i, core in enumerate(usage):
@@ -31,22 +39,18 @@ def collect_cpu_metrics(interval: float = 5.0) -> MetricPoints:
     usage = psutil.cpu_percent(interval=interval) 
     metrics["cpu.usage_percent"] = [(ts, usage)]
 
-    # CPU
+    # Частота CPU
     try:
         freq = psutil.cpu_freq()
         if freq is not None:
             metrics["cpu.freq.current_mhz"] = [(ts, float(freq.current))]
-            # при желании:
-            metrics["cpu.freq.min_mhz"] = [(ts, float(freq.min))]
-            metrics["cpu.freq.max_mhz"] = [(ts, float(freq.max))]
     except Exception:
         pass
 
     # Температура CPU (если ОС/железо это поддерживает)
     try:
-        temps = psutil.sensors_temperatures()  # может вернуть {} [web:129][web:134]
+        temps = psutil.sensors_temperatures()  # может вернуть {} 
         if temps:
-            # берём первое подходящее значение
             for name, entries in temps.items():
                 if not entries:
                     continue
