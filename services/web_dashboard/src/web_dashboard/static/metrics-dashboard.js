@@ -611,7 +611,7 @@ class MetricsDashboard extends HTMLElement {
 
             chart.data.datasets[0].data = points.map(p => ({ x: p.timestamp * 1000, y: p.value }));
             chart.options.scales.x.min = cutoff;
-            chart.options.scales.x.max = now - 50 * 1000 * 2;
+            chart.options.scales.x.max = now;
             chart.update('none');
         }
     }

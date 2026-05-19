@@ -176,7 +176,7 @@ async def get_metrics_analysis(
     
     t = time()
     target_metrics = metrics.split(",") if metrics else None
-    print(f'Пришел запрос с параметрами {target_metrics=}\n, {minutes=}')
+    # print(f'Пришел запрос с параметрами {target_metrics=}\n, {minutes=}')
 
     try:
         raw_data = await asyncio.to_thread(client.get, target_metrics)
