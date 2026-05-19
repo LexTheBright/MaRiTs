@@ -83,7 +83,57 @@ docker compose down -v
 
 ## Запуск в режиме разработки (Debug)
 
-### 1. Запуск отдельных сервисов
+### 1. Использование скрипта infra.sh (рекомендуется)
+
+Для быстрой разработки используйте скрипт `infra.sh`, который запускает все сервисы на хосте:
+
+```bash
+# Предварительно установите зависимости для всех сервисов
+cd services/metrics_server && pip install -e .
+cd ../metrics_client_api && pip install -e .
+cd ../cpu_monitor && pip install -e .
+cd ../web_dashboard && pip install -e .
+
+# Запустить инфраструктуру
+chmod +x infra.sh
+./infra.sh
+```
+
+Скрипт автоматически активирует виртуальные окружения и запустит:
+- Metrics Server
+- Metrics Client API (с auto-reload)
+- CPU Monitor
+- Web Dashboard
+
+**Важно:** InfluxDB необходимо запустить отдельно в Docker:
+
+```bash
+docker run -d --name influxdb -p 8086:8086 \
+  -e DOCKER_INFLUXDB_INIT_MODE=setup \
+  -e DOCKER_INFLUXDB_INIT_USERNAME=admin \
+  -e DOCKER_INFLUXDB_INIT_PASSWORD=password \
+  -e DOCKER_INFLUXDB_INIT_ORG=myorg \
+  -e DOCKER_INFLUXDB_INIT_BUCKET=metrics \
+  -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=token \
+  influxdb:2.7-alpine
+```
+
+### 2. Гибридный подход (контейнеры + хост)
+
+Для разработки можно оставить в Docker только базу данных и Marimo dashboard, а остальные сервисы запускать на хосте:
+
+```bash
+# Запустить в Docker только InfluxDB и Marimo
+docker compose up -d influxdb marimo_dashboard
+
+# Остальные сервисы запустить на хосте вручную
+cd services/metrics_server && python -m server.main
+cd services/metrics_client_api && uvicorn metrics_client_api.main:app --reload
+cd services/cpu_monitor && python -m cpu_monitor.main
+cd services/web_dashboard && uvicorn web_dashboard.main:app --reload
+```
+
+### 3. Запуск отдельных сервисов в Docker
 
 ```bash
 # Запустить только API клиент
@@ -96,7 +146,7 @@ docker compose up metrics_client_api metrics_server --build
 docker compose up influxdb metrics_server metrics_client_api cpu_monitor --build
 ```
 
-### 2. Hot-reload для веб-разработки
+### 4. Hot-reload для веб-разработки
 
 Для включения автоперезагрузки при изменении кода раскомментируйте в `docker-compose.yml`:
 
@@ -106,6 +156,8 @@ web_dashboard:
     - ./services/web_dashboard/src:/app/src
   command: ["uvicorn", "web_dashboard.main:app", "--host", "0.0.0.0", "--port", "4000", "--reload"]
 ```
+
+**Важно:** Для CPU Monitor существуют готовые скрипты установки и запуска для разных систем (см. раздел ниже).
 
 ---
 
@@ -170,18 +222,51 @@ export METRICS_SERVER_PORT=8888
 
 ### 3. CPU Monitor
 
+#### Быстрый запуск с помощью скриптов
+
+Для CPU Monitor предусмотрены готовые скрипты установки и запуска для различных операционных систем:
+
+**Linux/macOS:**
+```bash
+cd services/cpu_monitor
+
+# Установка и запуск одним скриптом
+chmod +x install_and_run.sh
+./install_and_run.sh
+```
+
+**Windows:**
+```bat
+cd services/cpu_monitor
+
+:: Установка и запуск одним скриптом
+install_and_run_agent.bat
+
+:: Или по отдельности
+install_agent.bat    :: только установка
+run_agent.bat        :: только запуск (после установки)
+```
+
+#### Ручная установка и запуск
+
+Если вы предпочитаете ручную настройку:
+
 ```bash
 cd services/cpu_monitor
 
 # Создать виртуальное окружение
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv_cpu_monitor
+
+# Активировать виртуальное окружение
+source .venv_cpu_monitor/bin/activate  # Linux/Mac
+# или .venv_cpu_monitor\Scripts\activate  # Windows
 
 # Установить зависимости
 pip install -e .
 
 # Запустить агент
 python -m cpu_monitor.main
+# или просто cpu-monitor (если установлен в систему)
 ```
 
 **Переменные окружения:**
@@ -189,7 +274,13 @@ python -m cpu_monitor.main
 export METRICS_API_URL=http://localhost:8000
 export CPU_SCRAPE_INTERVAL=5
 export CPU_COMPRESSOR=none
+# или для production с сжатием:
+# export CPU_COMPRESSOR="sausage_links"
+# export COMPRESSOR_MAX_LEN=10
 ```
+
+**Примечание:** Скрипт `install_and_run.sh` создаёт собственное виртуальное окружение `.venv_cpu_monitor` и использует его для запуска агента, что позволяет изолировать зависимости CPU Monitor от других сервисов.
+
 
 ### 4. Web Dashboard
 

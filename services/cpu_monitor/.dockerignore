@@ -1,0 +1,7 @@
+.env
+.venv_cpu_monitor/*
+build/*
+__pycache__/
+*.pyc
+src/**/__pycache__/
+*.egg-info/
